@@ -19,7 +19,8 @@ import {
   Scissors,
   CheckCircle2,
   Sliders,
-  Users
+  Users,
+  Loader2
 } from 'lucide-react';
 import { UserAccount, OrderRecord, CurrencyCode } from '../types';
 import { formatPrice } from '../utils/formatters';
@@ -203,6 +204,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Selected order for digital receipt modal
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<OrderRecord | null>(null);
@@ -222,6 +224,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
       setErrorMsg('');
       setSuccessMsg('');
+      setIsSubmitting(false);
     }
   }, [isOpen, initialMode, currentUser]);
 
@@ -278,18 +281,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const authenticate = async (endpoint: string, payload: Record<string, string>) => {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(payload),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.user) throw new Error(data.error || 'Authentication failed');
-    if (data.expiresAt) {
-      onLogin(data.user as UserAccount);
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.user) throw new Error(data.error || 'Authentication failed');
+      if (data.expiresAt) {
+        onLogin(data.user as UserAccount);
+      }
+      return data as { user: UserAccount; expiresAt?: string; requiresEmailConfirmation?: boolean };
+    } finally {
+      setIsSubmitting(false);
     }
-    return data as { user: UserAccount; expiresAt?: string; requiresEmailConfirmation?: boolean };
   };
 
   const handleUserLoginSubmit = async (e: React.FormEvent) => {
@@ -704,10 +712,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           <button
                             type="submit"
                             id="submit-admin-login-btn"
+                            disabled={isSubmitting}
                             className="w-full bg-black text-white hover:bg-zinc-800 font-bold py-3 rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2 mt-2"
                           >
-                            <ShieldCheck className="w-4 h-4" />
-                            <span>Log In to Admin Console</span>
+                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                            <span>{isSubmitting ? 'Signing in...' : 'Log In to Admin Console'}</span>
                           </button>
                         </form>
                       </div>
@@ -792,10 +801,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           <button
                             type="submit"
                             id="submit-tailor-login-btn"
+                            disabled={isSubmitting}
                             className="w-full bg-black text-white hover:bg-zinc-800 font-bold py-3 rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2 mt-2"
                           >
-                            <Scissors className="w-4 h-4" />
-                            <span>Sign In as Master Tailor</span>
+                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Scissors className="w-4 h-4" />}
+                            <span>{isSubmitting ? 'Signing in...' : 'Sign In as Master Tailor'}</span>
                           </button>
                         </form>
                       </div>
@@ -881,10 +891,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         <button
                           type="submit"
                           id="submit-user-login-btn"
+                          disabled={isSubmitting}
                           className="w-full bg-black text-white hover:bg-zinc-800 font-bold py-3 rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2"
                         >
-                          <span>Sign In</span>
-                          <ArrowRight className="w-4 h-4" />
+                          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                          <span>{isSubmitting ? 'Signing in...' : 'Sign In'}</span>
                         </button>
                       </form>
                     )}
@@ -958,9 +969,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         <button
                           type="submit"
                           id="submit-user-signup-btn"
-                          className="w-full bg-black text-white hover:bg-zinc-800 font-bold py-3 rounded-xl text-xs transition-all shadow-md"
+                          disabled={isSubmitting}
+                          className="w-full bg-black text-white hover:bg-zinc-800 font-bold py-3 rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2"
                         >
-                          Create Account
+                          {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                          {isSubmitting ? 'Creating account...' : 'Create Account'}
                         </button>
                       </form>
                     )}

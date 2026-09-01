@@ -591,6 +591,9 @@ app.post('/api/auth/login', async (req, res) => {
     try {
       const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
       if (error || !data.user) {
+        if (error?.code === 'email_not_confirmed') {
+          return res.status(403).json({ error: 'Please verify your email address before signing in' });
+        }
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
