@@ -20,7 +20,9 @@ import {
   CheckCircle2,
   Sliders,
   Users,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { UserAccount, OrderRecord, CurrencyCode } from '../types';
 import { formatPrice } from '../utils/formatters';
@@ -190,6 +192,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Form states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
@@ -199,8 +202,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Admin & Tailor credentials
   const [adminEmail, setAdminEmail] = useState('admin@yk.com');
   const [adminPassword, setAdminPassword] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [tailorEmail, setTailorEmail] = useState('tailor.yinka@yk.com');
   const [tailorPassword, setTailorPassword] = useState('');
+  const [showTailorPassword, setShowTailorPassword] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -709,13 +714,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             <div className="relative">
                               <KeyRound className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
                               <input
-                                type="password"
+                                type={showAdminPassword ? 'text' : 'password'}
                                 required
                                 value={adminPassword}
                                 onChange={(e) => setAdminPassword(e.target.value)}
                                 placeholder="Enter your staff passcode"
-                                className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-3 py-2.5 text-xs text-black focus:outline-none focus:border-black font-mono"
+                                className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-10 py-2.5 text-xs text-black focus:outline-none focus:border-black font-mono"
                               />
+                              <button type="button" onClick={() => setShowAdminPassword((visible) => !visible)} className="absolute right-3 top-2.5 text-zinc-500 hover:text-black" aria-label={showAdminPassword ? 'Hide password' : 'Show password'}>
+                                {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
                             </div>
                           </div>
 
@@ -799,12 +807,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             <div className="relative">
                               <KeyRound className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
                               <input
-                                type="password"
+                                type={showTailorPassword ? 'text' : 'password'}
                                 value={tailorPassword}
                                 onChange={(e) => setTailorPassword(e.target.value)}
                                 placeholder="Enter your workshop passcode"
-                                className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-3 py-2.5 text-xs text-black focus:outline-none focus:border-black font-mono"
+                                className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-10 py-2.5 text-xs text-black focus:outline-none focus:border-black font-mono"
                               />
+                              <button type="button" onClick={() => setShowTailorPassword((visible) => !visible)} className="absolute right-3 top-2.5 text-zinc-500 hover:text-black" aria-label={showTailorPassword ? 'Hide password' : 'Show password'}>
+                                {showTailorPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
                             </div>
                           </div>
 
@@ -888,13 +899,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           <div className="relative">
                             <Lock className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
                             <input
-                              type="password"
+                              type={showPassword ? 'text' : 'password'}
                               required
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
                               placeholder="••••••••••••"
-                              className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-3 py-2.5 text-xs text-black focus:outline-none focus:border-black"
+                              className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-10 py-2.5 text-xs text-black focus:outline-none focus:border-black"
                             />
+                            <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-3 top-2.5 text-zinc-500 hover:text-black" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
                           </div>
                         </div>
 
@@ -954,14 +968,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           <div className="relative">
                             <Lock className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
                             <input
-                              type="password"
+                              type={showPassword ? 'text' : 'password'}
                               required
                               minLength={8}
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
                               placeholder="At least 8 characters"
-                              className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-3 py-2 text-xs text-black focus:outline-none focus:border-black"
+                              className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-10 py-2 text-xs text-black focus:outline-none focus:border-black"
                             />
+                            <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-3 top-2 text-zinc-500 hover:text-black" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
                           </div>
                         </div>
 
