@@ -594,6 +594,9 @@ app.post('/api/auth/login', async (req, res) => {
         if (error?.code === 'email_not_confirmed') {
           return res.status(403).json({ error: 'Please verify your email address before signing in' });
         }
+        if (error?.code === 'over_request_rate_limit') {
+          return res.status(429).json({ error: 'Too many authentication attempts. Please wait a few minutes and try again.' });
+        }
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
@@ -665,6 +668,9 @@ app.post('/api/auth/register', async (req, res) => {
       },
     });
     if (error || !data.user) {
+      if (error?.code === 'over_email_send_rate_limit' || error?.code === 'over_request_rate_limit') {
+        return res.status(429).json({ error: 'Email rate limit reached. Please wait a few minutes before trying again.' });
+      }
       return res.status(400).json({ error: error?.message || 'Unable to create account' });
     }
 

@@ -282,6 +282,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const authenticate = async (endpoint: string, payload: Record<string, string>) => {
     setIsSubmitting(true);
+    const startedAt = Date.now();
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -296,6 +297,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
       return data as { user: UserAccount; expiresAt?: string; requiresEmailConfirmation?: boolean };
     } finally {
+      await new Promise((resolve) => setTimeout(resolve, Math.max(0, 500 - (Date.now() - startedAt))));
       setIsSubmitting(false);
     }
   };
@@ -401,6 +403,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
         <div className="bg-white rounded-3xl border border-zinc-200 max-w-lg w-full overflow-hidden shadow-2xl relative max-h-[92vh] flex flex-col">
+          {isSubmitting && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-white/80 backdrop-blur-sm">
+              <Loader2 className="w-8 h-8 animate-spin text-black" />
+              <span className="text-sm font-bold text-black">
+                {authMode === 'register' ? 'Creating your account...' : 'Signing you in...'}
+              </span>
+            </div>
+          )}
           {/* Header Bar */}
           <div className="p-5 sm:p-6 border-b border-zinc-200 flex items-center justify-between bg-zinc-50/70">
             <div className="flex items-center gap-3">
