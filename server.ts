@@ -413,7 +413,6 @@ interface SessionRecord {
   expiresAt: number;
 }
 
-const sessions = new Map<string, SessionRecord>();
 const passwordRecords = new Map<string, { salt: string; hash: string }>();
 const legacyAdminPasswordRecords = ['admin', 'yk2026'].map((password) => hashPassword(password));
 const legacyTailorPasswordRecords = ['tailor', 'admin123', 'yk2026'].map((password) => hashPassword(password));
@@ -492,17 +491,33 @@ function parseCookies(req: express.Request): Record<string, string> {
   }, {});
 }
 
-function getAuthenticatedUser(req: express.Request): AuthenticatedUser | null {
+function hashSessionId(sessionId: string) {
+  return crypto.createHash('sha256').update(sessionId).digest('hex');
+}
+
+async function getAuthenticatedUser(req: express.Request): Promise<AuthenticatedUser | null> {
   const sessionId = parseCookies(req)[SESSION_COOKIE];
   if (!sessionId) return null;
-  const session = sessions.get(sessionId);
-  if (!session || session.expiresAt <= Date.now()) {
-    if (session) sessions.delete(sessionId);
+  if (!supabase) return null;
+
+  const { data: session, error } = await supabase
+    .from('sessions')
+    .select('user_id, expires_at')
+    .eq('id', hashSessionId(sessionId))
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle();
+  if (error || !session) {
     return null;
   }
-  const user = usersDatabase.find((candidate) => candidate.id === session.userId);
+  let user = usersDatabase.find((candidate) => candidate.id === session.user_id);
   if (!user) {
-    sessions.delete(sessionId);
+    const { data: profile } = await supabase.from('users').select('*').eq('id', session.user_id).maybeSingle();
+    if (profile) {
+      user = normalizeUserRow(profile);
+      usersDatabase.push(user);
+    }
+  }
+  if (!user) {
     return null;
   }
   return user;
@@ -548,8 +563,8 @@ function verifyAgainstRecords(password: string, records: { salt: string; hash: s
   });
 }
 
-function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const user = getAuthenticatedUser(req);
+async function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const user = await getAuthenticatedUser(req);
   if (!user) return res.status(401).json({ error: 'Authentication required' });
   req.authenticatedUser = user;
   next();
@@ -562,10 +577,20 @@ function requireStaff(req: express.Request, res: express.Response, next: express
   next();
 }
 
-function createSession(req: express.Request, res: express.Response, user: UserRecord) {
+async function createSession(req: express.Request, res: express.Response, user: UserRecord) {
   const sessionId = crypto.randomBytes(32).toString('base64url');
   const expiresAt = Date.now() + SESSION_TTL_MS;
-  sessions.set(sessionId, { userId: user.id, expiresAt });
+  if (supabase) {
+    const { error } = await supabase.from('sessions').insert({
+      id: hashSessionId(sessionId),
+      user_id: user.id,
+      expires_at: new Date(expiresAt).toISOString(),
+    });
+    if (error) {
+      console.error('Supabase session save failed:', error.message);
+      throw new Error('Unable to create a secure session');
+    }
+  }
   setSessionCookie(req, res, sessionId);
   return { user: publicUser(user), expiresAt: new Date(expiresAt).toISOString() };
 }
@@ -618,7 +643,7 @@ app.post('/api/auth/login', async (req, res) => {
         return res.status(403).json({ error: 'Your account profile is not available yet' });
       }
 
-      return res.json(createSession(req, res, user));
+      return res.json(await createSession(req, res, user));
     } catch {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -633,14 +658,14 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
-  return res.json(createSession(req, res, user));
+  return res.json(await createSession(req, res, user));
 });
 
-app.post('/api/auth/demo', (req, res) => {
+app.post('/api/auth/demo', async (req, res) => {
   if (isProduction) return res.status(404).json({ error: 'Demo account is unavailable' });
   const demoUser = usersDatabase.find((user) => user.id === 'usr_adeyinka_1');
   if (!demoUser) return res.status(503).json({ error: 'Demo account is unavailable' });
-  return res.json(createSession(req, res, demoUser));
+  return res.json(await createSession(req, res, demoUser));
 });
 
 app.post('/api/auth/register', async (req, res) => {
@@ -716,7 +741,7 @@ app.post('/api/auth/register', async (req, res) => {
 
     usersDatabase.push(newUser);
     if (data.session) {
-      return res.status(201).json(createSession(req, res, newUser));
+      return res.status(201).json(await createSession(req, res, newUser));
     }
     return res.status(201).json({
       user: publicUser(newUser),
@@ -781,19 +806,24 @@ app.post('/api/auth/register', async (req, res) => {
     }
   }
 
-  return res.status(201).json(createSession(req, res, newUser));
+  return res.status(201).json(await createSession(req, res, newUser));
 });
 
-app.get('/api/auth/session', (req, res) => {
-  const user = getAuthenticatedUser(req);
+app.get('/api/auth/session', async (req, res) => {
+  const user = await getAuthenticatedUser(req);
   if (!user) return res.status(401).json({ user: null });
-  const session = sessions.get(parseCookies(req)[SESSION_COOKIE]);
-  return res.json({ user: publicUser(user), expiresAt: new Date(session?.expiresAt || Date.now()).toISOString() });
+  const sessionId = parseCookies(req)[SESSION_COOKIE];
+  const { data: session } = supabase
+    ? await supabase.from('sessions').select('expires_at').eq('id', hashSessionId(sessionId)).maybeSingle()
+    : { data: null };
+  return res.json({ user: publicUser(user), expiresAt: session?.expires_at || new Date(Date.now() + SESSION_TTL_MS).toISOString() });
 });
 
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', async (req, res) => {
   const sessionId = parseCookies(req)[SESSION_COOKIE];
-  if (sessionId) sessions.delete(sessionId);
+  if (sessionId && supabase) {
+    await supabase.from('sessions').delete().eq('id', hashSessionId(sessionId));
+  }
   clearSessionCookie(req, res);
   return res.status(204).send();
 });
