@@ -689,7 +689,7 @@ app.post('/api/auth/register', async (req, res) => {
       measurementsCount: 0,
       vipTier: 'Patron',
     };
-    const { error: profileError } = await supabase.from('users').insert({
+    const { error: profileError } = await supabase.from('users').upsert({
       id: newUser.id,
       name: newUser.name,
       email: newUser.email,
@@ -703,9 +703,14 @@ app.post('/api/auth/register', async (req, res) => {
       orders_count: 0,
       measurements_count: 0,
       vip_tier: newUser.vipTier,
-    });
+    }, { onConflict: 'email' });
     if (profileError) {
-      console.error('Supabase profile save failed:', profileError.message);
+      console.error('Supabase profile save failed:', {
+        code: profileError.code,
+        message: profileError.message,
+        details: profileError.details,
+        hint: profileError.hint,
+      });
       return res.status(503).json({ error: 'Account could not be saved. Please try again.' });
     }
 
