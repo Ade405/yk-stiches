@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   X, 
   Scissors, 
@@ -39,6 +39,18 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
 }) => {
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>('');
+  const detailsPanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen || !product) return;
+
+    setSelectedImageIdx(0);
+    setSelectedSize('');
+
+    if (detailsPanelRef.current) {
+      detailsPanelRef.current.scrollTop = 0;
+    }
+  }, [isOpen, product?.id]);
 
   if (!isOpen || !product) return null;
 
@@ -69,8 +81,8 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white text-black rounded-3xl border border-zinc-200 w-full max-w-4xl shadow-2xl overflow-hidden relative animate-fade-in">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex items-start justify-center p-3 sm:p-4">
+      <div className="bg-white text-black rounded-3xl border border-zinc-200 w-full max-w-4xl max-h-[calc(100vh-1.5rem)] shadow-2xl overflow-hidden relative animate-fade-in">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -84,15 +96,6 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
           {/* Left Gallery (5 cols) */}
           <div className="md:col-span-5 bg-zinc-50 p-3 sm:p-6 flex flex-col justify-between space-y-4 border-r border-zinc-200">
             <div className="relative rounded-2xl overflow-hidden border border-zinc-200 bg-white shadow-inner h-[46vh] sm:h-auto sm:aspect-[4/5]">
-              <button
-                onClick={onClose}
-                className="absolute top-3 left-3 z-20 p-2 rounded-full bg-white/90 text-zinc-700 hover:text-black hover:bg-white shadow-lg backdrop-blur-sm transition-all"
-                aria-label="Close product image"
-                title="Go back"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
               <img
                 src={product.images[selectedImageIdx] || product.images[0]}
                 alt={product.title}
@@ -108,7 +111,10 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
           </div>
 
           {/* Right Garment Spec & Actions (7 cols) */}
-          <div className="md:col-span-7 p-6 sm:p-8 space-y-5 overflow-y-auto max-h-[80vh]">
+          <div
+            ref={detailsPanelRef}
+            className="md:col-span-7 p-6 sm:p-8 space-y-5 overflow-y-auto max-h-[calc(100vh-6rem)]"
+          >
             <div>
               <div className="flex items-center justify-between text-xs text-zinc-500 mb-1">
                 <span className="uppercase tracking-widest font-bold text-zinc-600">
