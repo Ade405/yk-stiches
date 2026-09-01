@@ -1,0 +1,6 @@
+{
+  "name": "YK Stitches - Custom Tailoring & Clothes",
+  "description": "Clothing store where users can order clothes uploaded by admin and chat with tailors for custom fits.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
