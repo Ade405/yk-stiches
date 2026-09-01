@@ -82,20 +82,20 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-sm flex items-start justify-center p-3 sm:p-4">
-      <div className="bg-white text-black rounded-3xl border border-zinc-200 w-full max-w-4xl max-h-[calc(100vh-1.5rem)] shadow-2xl overflow-hidden relative animate-fade-in">
+      <div className="bg-white text-black rounded-3xl border border-zinc-200 w-full max-w-4xl h-[calc(100dvh-1.5rem)] max-h-none sm:h-auto sm:max-h-[calc(100vh-2rem)] shadow-2xl overflow-hidden relative animate-fade-in">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2.5 rounded-full bg-zinc-100 text-zinc-600 hover:text-black hover:bg-zinc-200 transition-all shadow-xs"
+          className="absolute top-4 left-4 z-20 p-2.5 rounded-full bg-zinc-100 text-zinc-600 hover:text-black hover:bg-zinc-200 transition-all shadow-xs"
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-12">
+        <div className="grid h-full grid-rows-[auto_minmax(0,1fr)] md:h-auto md:grid-rows-none md:grid-cols-12">
           {/* Left Gallery (5 cols) */}
           <div className="md:col-span-5 bg-zinc-50 p-3 sm:p-6 flex flex-col justify-between space-y-4 border-r border-zinc-200">
-            <div className="relative rounded-2xl overflow-hidden border border-zinc-200 bg-white shadow-inner h-[46vh] sm:h-auto sm:aspect-[4/5]">
+            <div className="relative rounded-2xl overflow-hidden border border-zinc-200 bg-white shadow-inner h-[38dvh] sm:h-auto sm:aspect-[4/5]">
               <img
                 src={product.images[selectedImageIdx] || product.images[0]}
                 alt={product.title}
@@ -113,7 +113,7 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
           {/* Right Garment Spec & Actions (7 cols) */}
           <div
             ref={detailsPanelRef}
-            className="md:col-span-7 p-6 sm:p-8 space-y-5 overflow-y-auto max-h-[calc(100vh-6rem)]"
+            className="md:col-span-7 min-h-0 p-6 sm:p-8 space-y-5 overflow-y-auto max-h-none md:max-h-[calc(100vh-6rem)]"
           >
             <div>
               <div className="flex items-center justify-between text-xs text-zinc-500 mb-1">
@@ -188,7 +188,7 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
                 <button
                   id="quick-add-bag-btn"
                   onClick={handleAddReadyToWear}
-                  className="flex-1 flex items-center justify-center gap-2 bg-black hover:bg-zinc-800 text-white font-bold py-3.5 rounded-xl shadow-md transition-all active:scale-98"
+                  className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 bg-black hover:bg-zinc-800 text-white font-bold py-2.5 sm:py-3.5 rounded-xl shadow-md transition-all active:scale-98 text-[11px] sm:text-base leading-tight"
                 >
                   <ShoppingBag className="w-4 h-4 text-white" />
                   <span>Order Now — Size {currentSize} ({formatPrice(product.price, currency)})</span>
@@ -214,7 +214,7 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
               <button
                 id="quick-chat-fit-btn"
                 onClick={handleChatAboutFit}
-                className="w-full flex items-center justify-center gap-2 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-black font-bold py-3 rounded-xl transition-all text-xs"
+                className="w-full flex items-center justify-center gap-1.5 sm:gap-2 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-black font-bold py-2 sm:py-3 rounded-xl transition-all text-[11px] sm:text-xs leading-tight"
               >
                 <Scissors className="w-4 h-4 text-black" />
                 <span>Chat with Tailors for Custom Sizing & Adjustments</span>
@@ -226,4 +226,3 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
     </div>
   );
 };
-
