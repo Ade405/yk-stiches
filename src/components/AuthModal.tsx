@@ -286,7 +286,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.user) throw new Error(data.error || 'Authentication failed');
-    onLogin(data.user as UserAccount);
+    if (data.expiresAt) {
+      onLogin(data.user as UserAccount);
+    }
+    return data as { user: UserAccount; expiresAt?: string; requiresEmailConfirmation?: boolean };
   };
 
   const handleUserLoginSubmit = async (e: React.FormEvent) => {
@@ -346,9 +349,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     setErrorMsg('');
     try {
-      await authenticate('/api/auth/register', { name, email: email.trim(), password, phone, address, city, country });
-      setSuccessMsg('Patron account created successfully!');
-      setTimeout(onClose, 600);
+      const result = await authenticate('/api/auth/register', { name, email: email.trim(), password, phone, address, city, country });
+      setSuccessMsg(result.requiresEmailConfirmation
+        ? 'Account created. Check your email to verify it before signing in.'
+        : 'Patron account created successfully!');
+      setTimeout(onClose, result.requiresEmailConfirmation ? 2200 : 600);
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : 'Unable to create account');
     }

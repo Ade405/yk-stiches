@@ -191,6 +191,14 @@ const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_K
       },
     })
   : null;
+const supabaseAuth = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+     auth: {
+       persistSession: false,
+       autoRefreshToken: false,
+     },
+    })
+  : null;
 
 if (supabase) {
   void supabase.from('users').select('id').limit(1).then(({ error }) => {
@@ -569,7 +577,7 @@ app.get('/api/csrf-token', (req, res) => {
 });
 
 // Session authentication endpoints. Passwords and session identifiers never leave the server.
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid login payload' });
@@ -578,6 +586,38 @@ app.post('/api/auth/login', (req, res) => {
   const email = sanitizeUserText(parsed.data.email, 254).toLowerCase();
   const password = parsed.data.password;
   const requestedRole = parsed.data.role === 'tailor' ? 'tailor' : 'user';
+
+  if (supabaseAuth && requestedRole === 'user') {
+    try {
+      const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
+      if (error || !data.user) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      let user = usersDatabase.find((candidate) => candidate.id === data.user.id) ||
+        usersDatabase.find((candidate) => candidate.email.toLowerCase() === email);
+      if (!user && supabase) {
+        const { data: profile, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .maybeSingle();
+        if (profileError || !profile) {
+          return res.status(403).json({ error: 'Your account profile is not available yet' });
+        }
+        user = normalizeUserRow(profile);
+        usersDatabase.push(user);
+      }
+      if (!user) {
+        return res.status(403).json({ error: 'Your account profile is not available yet' });
+      }
+
+      return res.json(createSession(req, res, user));
+    } catch {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+  }
+
   const user = usersDatabase.find((candidate) => candidate.email.toLowerCase() === email) ||
     ((email === 'admin@ykstitches.com') ? usersDatabase.find((candidate) => candidate.id === 'usr_admin_master') : undefined);
   const validPassword = verifyPassword(email, password) ||
@@ -611,6 +651,63 @@ app.post('/api/auth/register', async (req, res) => {
   }
   if (usersDatabase.some((user) => user.email.toLowerCase() === email)) {
     return res.status(409).json({ error: 'An account with that email already exists' });
+  }
+
+  if (supabaseAuth && supabase) {
+    const { data, error } = await supabaseAuth.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+      },
+    });
+    if (error || !data.user) {
+      return res.status(400).json({ error: error?.message || 'Unable to create account' });
+    }
+
+    const newUser: UserRecord = {
+      id: data.user.id,
+      name,
+      email,
+      phone: sanitizeUserText(parsed.data.phone, 40) || '+234 800 000 0000',
+      role: 'user',
+      address: sanitizeUserText(parsed.data.address, 200) || 'Victoria Island High Street',
+      city: sanitizeUserText(parsed.data.city, 80) || 'Lagos',
+      country: sanitizeUserText(parsed.data.country, 80) || 'Nigeria',
+      joinedDate: new Date().toISOString(),
+      totalSpent: 0,
+      ordersCount: 0,
+      measurementsCount: 0,
+      vipTier: 'Patron',
+    };
+    const { error: profileError } = await supabase.from('users').insert({
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      phone: newUser.phone,
+      role: newUser.role,
+      address: newUser.address,
+      city: newUser.city,
+      country: newUser.country,
+      joined_date: newUser.joinedDate,
+      total_spent: 0,
+      orders_count: 0,
+      measurements_count: 0,
+      vip_tier: newUser.vipTier,
+    });
+    if (profileError) {
+      console.error('Supabase profile save failed:', profileError.message);
+      return res.status(503).json({ error: 'Account could not be saved. Please try again.' });
+    }
+
+    usersDatabase.push(newUser);
+    if (data.session) {
+      return res.status(201).json(createSession(req, res, newUser));
+    }
+    return res.status(201).json({
+      user: publicUser(newUser),
+      requiresEmailConfirmation: true,
+    });
   }
 
   const newUser: UserRecord = {
