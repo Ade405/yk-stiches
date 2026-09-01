@@ -30,6 +30,7 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
 const isProduction = process.env.NODE_ENV === 'production';
+const hasTlsCertificateConfig = Boolean(process.env.TLS_KEY_PATH && process.env.TLS_CERT_PATH);
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const SESSION_COOKIE = 'yk_session';
 const CSRF_COOKIE = 'yk_csrf';
@@ -80,7 +81,7 @@ if (isProduction && (!adminPassword || !demoUserPassword || !tailorPassword)) {
 
 // Keep security policy strict for deployed assets while allowing Vite's dev client locally.
 app.use((req, res, next) => {
-  if (isProduction && req.headers['x-forwarded-proto'] === 'http') {
+  if (isProduction && hasTlsCertificateConfig && req.headers['x-forwarded-proto'] === 'http') {
     return res.redirect(308, `https://${req.get('host')}${req.originalUrl}`);
   }
 
@@ -1285,23 +1286,26 @@ async function start() {
     });
   }
 
-  if (isProduction) {
+  if (isProduction && hasTlsCertificateConfig) {
     const keyPath = process.env.TLS_KEY_PATH;
     const certPath = process.env.TLS_CERT_PATH;
-    if (!keyPath || !certPath) {
-      throw new Error('TLS_KEY_PATH and TLS_CERT_PATH are required in production');
-    }
     https.createServer(
-      { key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath) },
+      { key: fs.readFileSync(keyPath!), cert: fs.readFileSync(certPath!) },
       app,
     ).listen(PORT, '0.0.0.0', () => {
       console.log(`YK Stitches Atelier Server running at https://0.0.0.0:${PORT}`);
     });
-  } else {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`YK Stitches Atelier Server running at http://0.0.0.0:${PORT}`);
-    });
+    return;
   }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    if (isProduction) {
+      console.log(`YK Stitches Atelier Server running in production behind a proxy at http://0.0.0.0:${PORT}`);
+      console.log('No TLS_KEY_PATH/TLS_CERT_PATH configured; continuing in HTTP mode because Render or a reverse proxy is expected to terminate TLS.');
+    } else {
+      console.log(`YK Stitches Atelier Server running at http://0.0.0.0:${PORT}`);
+    }
+  });
 }
 
 start();
