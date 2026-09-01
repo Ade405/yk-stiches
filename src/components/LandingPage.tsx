@@ -34,7 +34,7 @@ interface LandingPageProps {
   currency: CurrencyCode;
   products: ProductItem[];
   currentUser: UserAccount | null;
-  onOpenAuth: () => void;
+  onOpenAuth: (mode?: 'user-login' | 'register') => void;
   wishlist?: string[];
   onToggleWishlist?: (productId: string) => void;
 }
@@ -157,7 +157,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 {/* Account status badge */}
                 {currentUser ? (
                   <button
-                    onClick={onOpenAuth}
+                    onClick={() => onOpenAuth()}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-300 text-xs font-bold text-black hover:bg-zinc-200 transition-all shadow-xs"
                   >
                     <User className="w-3.5 h-3.5 text-zinc-700" />
@@ -166,7 +166,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 ) : (
                   <button
                     id="hero-patron-signin-badge"
-                    onClick={onOpenAuth}
+                    onClick={() => onOpenAuth()}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-xs font-bold text-zinc-800 transition-all"
                   >
                     <UserPlus className="w-3.5 h-3.5 text-black" />
@@ -208,20 +208,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </button>
 
                 {!currentUser && (
-                  <button
-                    id="hero-signin-action-btn"
-                    onClick={onOpenAuth}
-                    className="flex items-center gap-2 bg-white hover:bg-zinc-50 border border-black text-black font-bold px-5 py-3.5 rounded-xl shadow-xs transition-all active:scale-[0.98] text-sm"
-                  >
-                    <User className="w-4 h-4" />
-                    <span>Sign In / Register</span>
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      id="hero-signin-action-btn"
+                      onClick={() => onOpenAuth('user-login')}
+                      className="flex items-center gap-2 bg-white hover:bg-zinc-50 border border-black text-black font-bold px-6 py-4 rounded-xl shadow-xs transition-all active:scale-[0.98] text-base"
+                    >
+                      <User className="w-5 h-5" />
+                      <span>Sign In</span>
+                    </button>
+                    <button
+                      id="hero-register-action-btn"
+                      onClick={() => onOpenAuth('register')}
+                      className="flex items-center gap-2 bg-black hover:bg-zinc-800 border border-black text-white font-bold px-6 py-4 rounded-xl shadow-xs transition-all active:scale-[0.98] text-base"
+                    >
+                      <UserPlus className="w-5 h-5" />
+                      <span>Create Account</span>
+                    </button>
+                  </div>
                 )}
 
                 {currentUser && (
                   <button
                     id="hero-my-orders-btn"
-                    onClick={onOpenAuth}
+                    onClick={() => onOpenAuth()}
                     className="flex items-center gap-2 bg-white hover:bg-zinc-50 border border-zinc-300 text-black font-bold px-4 py-3.5 rounded-xl shadow-xs transition-all text-sm"
                   >
                     <Receipt className="w-4 h-4 text-black" />
@@ -514,7 +524,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
             
             <button
-              onClick={onOpenAuth}
+              onClick={() => onOpenAuth()}
               className="bg-zinc-900 border border-zinc-700 text-white font-bold px-7 py-3.5 rounded-xl hover:bg-zinc-800 transition-all text-sm flex items-center gap-2"
             >
               <User className="w-4 h-4" />
