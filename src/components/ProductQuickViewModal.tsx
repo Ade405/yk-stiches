@@ -82,36 +82,29 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-12">
           {/* Left Gallery (5 cols) */}
-          <div className="md:col-span-5 bg-zinc-50 p-6 flex flex-col justify-between space-y-4 border-r border-zinc-200">
-            <div className="aspect-[4/5] rounded-2xl overflow-hidden border border-zinc-200 bg-white relative">
+          <div className="md:col-span-5 bg-zinc-50 p-3 sm:p-6 flex flex-col justify-between space-y-4 border-r border-zinc-200">
+            <div className="relative rounded-2xl overflow-hidden border border-zinc-200 bg-white shadow-inner h-[46vh] sm:h-auto sm:aspect-[4/5]">
+              <button
+                onClick={onClose}
+                className="absolute top-3 left-3 z-20 p-2 rounded-full bg-white/90 text-zinc-700 hover:text-black hover:bg-white shadow-lg backdrop-blur-sm transition-all"
+                aria-label="Close product image"
+                title="Go back"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
               <img
                 src={product.images[selectedImageIdx] || product.images[0]}
                 alt={product.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain sm:object-cover bg-zinc-100"
               />
               {product.badge && (
-                <span className="absolute top-3 left-3 px-2.5 py-1 rounded bg-black text-white text-[10px] font-bold uppercase tracking-wider">
+                <span className="absolute top-3 right-3 px-2.5 py-1 rounded bg-black text-white text-[10px] font-bold uppercase tracking-wider">
                   {product.badge}
                 </span>
               )}
             </div>
 
-            {/* Thumbnail previews */}
-            {product.images.length > 1 && (
-              <div className="flex gap-2 justify-center">
-                {product.images.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedImageIdx(idx)}
-                    className={`w-14 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                      selectedImageIdx === idx ? 'border-black shadow-xs' : 'border-zinc-300 opacity-60'
-                    }`}
-                  >
-                    <img src={img} alt="Thumbnail" className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Right Garment Spec & Actions (7 cols) */}

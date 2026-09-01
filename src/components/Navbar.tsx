@@ -14,7 +14,8 @@ import {
   Sparkles, 
   LogOut, 
   Heart,
-  ChevronDown
+  ChevronDown,
+  Home
 } from 'lucide-react';
 import { CurrencyCode, UserAccount, NavTabId } from '../types';
 
@@ -254,6 +255,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Wishlist / Saved Outfits Shortcut */}
             {/* User Authentication Trigger */}
             <div className="flex items-center gap-1">
+              <button
+                id="mobile-home-trigger-btn"
+                onClick={() => setActiveTab('home')}
+                className="lg:hidden flex items-center justify-center p-2.5 rounded-xl border border-zinc-300 bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-all"
+                aria-label="Go home"
+                title="Home"
+              >
+                <Home className="w-4 h-4" />
+              </button>
+
               <button
                 id="auth-modal-btn"
                 onClick={onOpenAuth}
