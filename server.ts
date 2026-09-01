@@ -9,6 +9,7 @@ import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
+import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
@@ -181,6 +182,80 @@ import { PRODUCTS_CATALOG } from './src/data/catalog.js';
 import { MASTER_TAILORS } from './src/data/tailors.js';
 
 let productsDatabase = [...PRODUCTS_CATALOG];
+
+const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    })
+  : null;
+
+const normalizeUserRow = (row: any): UserRecord => ({
+  id: row.id,
+  name: row.name,
+  email: row.email,
+  phone: row.phone || '+234 800 000 0000',
+  role: row.role || 'user',
+  avatar: row.avatar,
+  address: row.address || '',
+  city: row.city || '',
+  state: row.state,
+  country: row.country || 'Nigeria',
+  postalCode: row.postal_code || row.postalCode,
+  joinedDate: row.joined_date || row.joinedDate || new Date().toISOString(),
+  totalSpent: Number(row.total_spent ?? row.totalSpent ?? 0),
+  ordersCount: Number(row.orders_count ?? row.ordersCount ?? 0),
+  measurementsCount: Number(row.measurements_count ?? row.measurementsCount ?? 0),
+  vipTier: row.vip_tier || row.vipTier || 'Patron',
+  tailorNotes: row.tailor_notes || row.tailorNotes,
+  savedMeasurements: row.saved_measurements || row.savedMeasurements || {},
+});
+
+const normalizeProductRow = (row: any) => ({
+  ...row,
+  id: row.id,
+  name: row.name,
+  price: Number(row.price ?? 0),
+  rating: Number(row.rating ?? 5),
+  reviewCount: Number(row.review_count ?? row.reviewCount ?? 1),
+  inStock: row.in_stock ?? row.inStock ?? true,
+  tags: row.tags ?? [],
+  image: row.image_url || row.image || row.imageUrl,
+  category: row.category || 'Tailored Staples',
+});
+
+const normalizeOrderRow = (row: any): OrderRecord => ({
+  ...row,
+  id: row.id,
+  orderNumber: row.order_number || row.orderNumber,
+  customerName: row.customer_name || row.customerName,
+  customerPhone: row.customer_phone || row.customerPhone,
+  customerEmail: row.customer_email || row.customerEmail,
+  items: Array.isArray(row.items) ? row.items : [],
+  orderType: row.order_type || row.orderType || 'bespoke',
+  totalAmount: Number(row.total_amount ?? row.totalAmount ?? 0),
+  currency: row.currency || 'USD',
+  paymentStatus: row.payment_status || row.paymentStatus || 'pending',
+  paymentGateway: row.payment_gateway || row.paymentGateway || 'Manual',
+  transactionRef: row.transaction_ref || row.transactionRef || `TX-${Date.now()}`,
+  deliveryAddress: row.delivery_address || row.deliveryAddress || 'Atelier Collection',
+  deliveryCity: row.delivery_city || row.deliveryCity || 'Lagos',
+  expressDelivery: Boolean(row.express_delivery ?? row.expressDelivery),
+  createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+  estimatedDeliveryDate: row.estimated_delivery_date || row.estimatedDeliveryDate || new Date().toISOString(),
+  assignedTailor: row.assigned_tailor || row.assignedTailor || {
+    name: 'Master Tailor Adeyinka',
+    role: 'Founder & Principal Master Cutter',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    phone: '+234 812 345 6789',
+  },
+  currentStageIndex: Number(row.current_stage_index ?? row.currentStageIndex ?? 0),
+  milestones: Array.isArray(row.milestones) ? row.milestones : [],
+  measurementsSummary: row.measurements_summary || row.measurementsSummary || {},
+  specialInstructions: row.special_instructions || row.specialInstructions || '',
+});
 
 // User CRM & Directory Database
 export interface UserRecord {
@@ -879,7 +954,22 @@ Feel free to save these directly in our Custom Tailoring Studio!`;
 });
 
 // API: Get All Orders or Search by Order Number / Customer
-app.get('/api/orders', requireAuth, (req, res) => {
+app.get('/api/orders', requireAuth, async (req, res) => {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('orders').select('*');
+      if (!error && data) {
+        const rows = data.map(normalizeOrderRow);
+        const orders = req.authenticatedUser?.role === 'admin'
+          ? rows
+          : rows.filter((order) => order.customerEmail.toLowerCase() === req.authenticatedUser?.email.toLowerCase());
+        return res.json({ orders });
+      }
+    } catch (error) {
+      console.warn('Supabase orders fetch failed, falling back to in-memory state:', error);
+    }
+  }
+
   const orders = req.authenticatedUser?.role === 'admin'
     ? ordersDatabase
     : ordersDatabase.filter((order) => order.customerEmail.toLowerCase() === req.authenticatedUser?.email.toLowerCase());
@@ -906,7 +996,7 @@ app.post('/api/orders/search', requireAuth, (req, res) => {
 });
 
 // API: Create a New Order (after payment confirmation or bespoke order placement)
-app.post('/api/orders', requireAuth, (req, res) => {
+app.post('/api/orders', requireAuth, async (req, res) => {
   try {
     const orderData = req.body;
     const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -991,6 +1081,42 @@ app.post('/api/orders', requireAuth, (req, res) => {
     };
 
     ordersDatabase.unshift(newOrder);
+
+    if (supabase) {
+      try {
+        const { error } = await supabase.from('orders').upsert({
+          id: newOrder.id,
+          order_number: newOrder.orderNumber,
+          user_id: req.authenticatedUser?.id || null,
+          status: newOrder.paymentStatus,
+          total: Number(newOrder.totalAmount || 0),
+          items: newOrder.items,
+          shipping_address: newOrder.deliveryAddress,
+          created_at: newOrder.createdAt,
+          customer_name: newOrder.customerName,
+          customer_email: newOrder.customerEmail,
+          customer_phone: newOrder.customerPhone,
+          order_type: newOrder.orderType,
+          payment_status: newOrder.paymentStatus,
+          payment_gateway: newOrder.paymentGateway,
+          transaction_ref: newOrder.transactionRef,
+          delivery_city: newOrder.deliveryCity,
+          express_delivery: newOrder.expressDelivery,
+          estimated_delivery_date: newOrder.estimatedDeliveryDate,
+          assigned_tailor: newOrder.assignedTailor,
+          current_stage_index: newOrder.currentStageIndex,
+          milestones: newOrder.milestones,
+          measurements_summary: newOrder.measurementsSummary,
+          special_instructions: newOrder.specialInstructions,
+        }, { onConflict: 'id' });
+        if (error) {
+          console.warn('Supabase order save failed, continuing in memory:', error.message);
+        }
+      } catch (error) {
+        console.warn('Supabase order save threw, continuing in memory:', error);
+      }
+    }
+
     res.status(201).json({ success: true, order: newOrder });
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to create order' });
@@ -1051,11 +1177,21 @@ app.post('/api/upload-image', requireAuth, requireStaff, (req, res) => {
 });
 
 // API: Products CRUD for Admin & Catalog
-app.get('/api/products', (req, res) => {
+app.get('/api/products', async (req, res) => {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+      if (!error && data) {
+        return res.json({ products: data.map(normalizeProductRow) });
+      }
+    } catch (error) {
+      console.warn('Supabase products lookup failed, falling back:', error);
+    }
+  }
   res.json({ products: productsDatabase });
 });
 
-app.post('/api/products', requireAuth, requireStaff, (req, res) => {
+app.post('/api/products', requireAuth, requireStaff, async (req, res) => {
   try {
     const productData = req.body;
     const newProduct = {
@@ -1066,46 +1202,137 @@ app.post('/api/products', requireAuth, requireStaff, (req, res) => {
       inStock: productData.inStock ?? true,
     };
     productsDatabase.unshift(newProduct);
+
+    if (supabase) {
+      try {
+        const { error } = await supabase.from('products').upsert({
+          id: newProduct.id,
+          name: newProduct.name,
+          category: newProduct.category,
+          price: Number(newProduct.price ?? 0),
+          image_url: newProduct.image || newProduct.imageUrl,
+          description: newProduct.description,
+          fabric: newProduct.fabric,
+          tags: newProduct.tags || [],
+          featured: !!newProduct.featured,
+          created_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+        if (error) {
+          console.warn('Supabase product upsert failed, continuing in memory:', error.message);
+        }
+      } catch (error) {
+        console.warn('Supabase product upsert threw, continuing in memory:', error);
+      }
+    }
+
     res.status(201).json({ success: true, product: newProduct });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create product' });
   }
 });
 
-app.put('/api/products/:id', requireAuth, requireStaff, (req, res) => {
+app.put('/api/products/:id', requireAuth, requireStaff, async (req, res) => {
   const { id } = req.params;
   const index = productsDatabase.findIndex((p) => p.id === id);
   if (index === -1) {
     return res.status(404).json({ error: 'Product not found' });
   }
   productsDatabase[index] = { ...productsDatabase[index], ...req.body };
+
+  if (supabase) {
+    try {
+      const currentProduct: any = productsDatabase[index];
+      const { error } = await supabase.from('products').upsert({
+        id,
+        name: currentProduct.title || currentProduct.name || 'Custom Product',
+        category: currentProduct.category || 'Tailored Staples',
+        price: Number(currentProduct.price ?? 0),
+        image_url: Array.isArray(currentProduct.images) ? currentProduct.images[0] : currentProduct.image || currentProduct.imageUrl || '',
+        description: currentProduct.description || '',
+        fabric: currentProduct.fabric ? (typeof currentProduct.fabric === 'string' ? currentProduct.fabric : currentProduct.fabric.name || '') : '',
+        tags: Array.isArray(currentProduct.tags) ? currentProduct.tags : (Array.isArray(currentProduct.highlights) ? currentProduct.highlights : []),
+        featured: Boolean((currentProduct as any).featured),
+      }, { onConflict: 'id' });
+      if (error) {
+        console.warn('Supabase product update failed, continuing in memory:', error.message);
+      }
+    } catch (error) {
+      console.warn('Supabase product update threw, continuing in memory:', error);
+    }
+  }
+
   res.json({ success: true, product: productsDatabase[index] });
 });
 
-app.delete('/api/products/:id', requireAuth, requireStaff, (req, res) => {
+app.delete('/api/products/:id', requireAuth, requireStaff, async (req, res) => {
   const { id } = req.params;
   const index = productsDatabase.findIndex((p) => p.id === id);
   if (index === -1) {
     return res.status(404).json({ error: 'Product not found' });
   }
   const deleted = productsDatabase.splice(index, 1)[0];
+
+  if (supabase) {
+    try {
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) {
+        console.warn('Supabase product delete failed, continuing in memory:', error.message);
+      }
+    } catch (error) {
+      console.warn('Supabase product delete threw, continuing in memory:', error);
+    }
+  }
+
   res.json({ success: true, product: deleted });
 });
 
 // API: Users CRM & Directory
-app.get('/api/users', requireAuth, requireStaff, (req, res) => {
+app.get('/api/users', requireAuth, requireStaff, async (req, res) => {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('users').select('*');
+      if (!error && data) {
+        return res.json({ users: data.map(normalizeUserRow) });
+      }
+    } catch (error) {
+      console.warn('Supabase users lookup failed, falling back:', error);
+    }
+  }
   res.json({ users: usersDatabase });
 });
 
-app.post('/api/users', requireAuth, requireStaff, (req, res) => {
+app.post('/api/users', requireAuth, requireStaff, async (req, res) => {
   try {
     const userData = req.body;
     const existing = usersDatabase.find(
       (u) => u.email.toLowerCase() === (userData.email || '').toLowerCase()
     );
     if (existing) {
-      // Update existing
       Object.assign(existing, userData);
+      if (supabase) {
+        try {
+          await supabase.from('users').upsert({
+            id: existing.id,
+            name: existing.name,
+            email: existing.email,
+            phone: existing.phone,
+            role: existing.role,
+            avatar: existing.avatar,
+            address: existing.address,
+            city: existing.city,
+            country: existing.country,
+            joined_date: existing.joinedDate,
+            total_spent: existing.totalSpent,
+            orders_count: existing.ordersCount,
+            measurements_count: existing.measurementsCount,
+            vip_tier: existing.vipTier,
+            tailor_notes: existing.tailorNotes,
+            saved_measurements: existing.savedMeasurements || {},
+          }, { onConflict: 'id' });
+        } catch (error) {
+          console.warn('Supabase user upsert failed, continuing in memory:', error);
+        }
+      }
       return res.json({ success: true, user: existing });
     }
     const newUser: UserRecord = {
@@ -1129,13 +1356,39 @@ app.post('/api/users', requireAuth, requireStaff, (req, res) => {
       savedMeasurements: userData.savedMeasurements || {},
     };
     usersDatabase.push(newUser);
+
+    if (supabase) {
+      try {
+        await supabase.from('users').upsert({
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          role: newUser.role,
+          avatar: newUser.avatar,
+          address: newUser.address,
+          city: newUser.city,
+          country: newUser.country,
+          joined_date: newUser.joinedDate,
+          total_spent: newUser.totalSpent,
+          orders_count: newUser.ordersCount,
+          measurements_count: newUser.measurementsCount,
+          vip_tier: newUser.vipTier,
+          tailor_notes: newUser.tailorNotes,
+          saved_measurements: newUser.savedMeasurements || {},
+        }, { onConflict: 'id' });
+      } catch (error) {
+        console.warn('Supabase user insert failed, continuing in memory:', error);
+      }
+    }
+
     res.status(201).json({ success: true, user: newUser });
   } catch (err) {
     res.status(500).json({ error: 'Failed to create or update user' });
   }
 });
 
-app.put('/api/users/:id', requireAuth, (req, res) => {
+app.put('/api/users/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   const user = usersDatabase.find((u) => u.id === id);
   if (!user) return res.status(404).json({ error: 'User not found' });
@@ -1148,6 +1401,32 @@ app.put('/api/users/:id', requireAuth, (req, res) => {
       (user as unknown as Record<string, unknown>)[field] = req.body[field];
     }
   }
+
+  if (supabase) {
+    try {
+      await supabase.from('users').upsert({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        avatar: user.avatar,
+        address: user.address,
+        city: user.city,
+        country: user.country,
+        joined_date: user.joinedDate,
+        total_spent: user.totalSpent,
+        orders_count: user.ordersCount,
+        measurements_count: user.measurementsCount,
+        vip_tier: user.vipTier,
+        tailor_notes: user.tailorNotes,
+        saved_measurements: user.savedMeasurements || {},
+      }, { onConflict: 'id' });
+    } catch (error) {
+      console.warn('Supabase user profile save failed, continuing in memory:', error);
+    }
+  }
+
   res.json({ success: true, user });
 });
 

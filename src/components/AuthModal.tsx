@@ -11,7 +11,6 @@ import {
   Sparkles,
   ArrowRight,
   LogOut,
-  Crown,
   KeyRound,
   Download,
   Receipt,
@@ -396,7 +395,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 {authMode === 'admin-login' ? (
                   staffRole === 'admin' ? <ShieldCheck className="w-5 h-5 text-white" /> : <Scissors className="w-5 h-5 text-white" />
                 ) : currentUser ? (
-                  <Crown className="w-5 h-5 text-white" />
+                  <User className="w-5 h-5 text-white" />
                 ) : (
                   <User className="w-5 h-5 text-white" />
                 )}
@@ -841,28 +840,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       </button>
                     </div>
 
-                    {/* Quick Demo Button */}
-                    <div className="bg-zinc-50 border border-zinc-200 p-2.5 rounded-xl flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-zinc-500 font-medium">Quick Test Login:</span>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          setErrorMsg('');
-                          try {
-                            await authenticate('/api/auth/demo', {});
-                            setSuccessMsg('Logged in as Adeyinka Adebowale');
-                            setTimeout(onClose, 600);
-                          } catch (error) {
-                            setErrorMsg(error instanceof Error ? error.message : 'Unable to sign in');
-                          }
-                        }}
-                        className="px-2.5 py-1 rounded-lg bg-white border border-zinc-300 text-black hover:bg-zinc-100 font-bold text-[11px] flex items-center gap-1.5 shadow-2xs"
-                      >
-                        <Crown className="w-3 h-3 text-black" />
-                        <span>Customer Account (Adeyinka)</span>
-                      </button>
-                    </div>
-
                     {/* USER LOGIN FORM */}
                     {authMode === 'user-login' && (
                       <form onSubmit={handleUserLoginSubmit} className="space-y-4">
@@ -983,20 +960,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       </form>
                     )}
 
-                    {/* Staff / Tailor Login direct link at footer */}
-                    <div className="text-center pt-3 border-t border-zinc-100">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAuthMode('admin-login');
-                          setErrorMsg('');
-                        }}
-                        className="text-xs text-zinc-500 hover:text-black flex items-center justify-center gap-1.5 mx-auto font-medium"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
-                        <span>Staff & Master Tailor Login</span>
-                      </button>
-                    </div>
                   </>
                 )}
               </>
