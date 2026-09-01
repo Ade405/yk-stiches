@@ -368,7 +368,7 @@ export const MasterTailorChat: React.FC<MasterTailorChatProps> = ({
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => handleSendMessage("Attaching sketch photo of preferred Agbada sleeve embroidery.")}
+                  onClick={() => handleSendMessage("Attaching sketch photo of preferred suit sleeve embroidery.")}
                   className="p-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 text-zinc-700 hover:text-black transition-colors"
                   title="Attach Design Sketch / Swatch Image"
                   aria-label="Attach Design Sketch / Swatch Image"
@@ -402,4 +402,3 @@ export const MasterTailorChat: React.FC<MasterTailorChatProps> = ({
     </div>
   );
 };
-

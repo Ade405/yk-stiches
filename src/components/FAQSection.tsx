@@ -50,7 +50,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({
       category: 'tailoring',
       question: 'How long does it take to make and complete a custom outfit?',
       answer:
-        'Standard custom tailoring takes between 5 to 10 business days depending on garment complexity. Intricate pieces such as 3-Piece Royal Agbadas with hand embroidery or fully canvassed tuxedo suits typically require 8 to 14 business days. We also offer express priority atelier stitching if you have an upcoming wedding or event.',
+        'Standard custom tailoring takes between 5 to 10 business days depending on garment complexity. Intricate pieces such as 3-Piece Royal Suits with hand embroidery or fully canvassed tuxedo suits typically require 8 to 14 business days. We also offer express priority atelier stitching if you have an upcoming wedding or event.',
       highlight: 'Express crafting available for urgent celebrations.',
     },
     {
@@ -114,7 +114,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({
       category: 'fabrics',
       question: 'How should I wash and care for my custom tailored clothes?',
       answer:
-        'For Senator suits, Agbadas, and bespoke tuxedos, we recommend professional dry cleaning to protect structured interlinings and hand embroidery. For pure cotton Kaftans, gentle hand wash with mild detergent and low steam pressing will keep your garment looking pristine for years.',
+        'For Senator suits, traditional suits, and bespoke tuxedos, we recommend professional dry cleaning to protect structured interlinings and hand embroidery. For pure cotton Kaftans, gentle hand wash with mild detergent and low steam pressing will keep your garment looking pristine for years.',
     },
   ];
 

@@ -935,7 +935,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     name="title"
                     required
                     defaultValue={editingProduct?.title || ''}
-                    placeholder="e.g. Imperial Hand-Embroidered Agbada"
+                    placeholder="e.g. Imperial Hand-Embroidered Suit"
                     className="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2 text-black focus:outline-none focus:border-black"
                   />
                 </div>
@@ -961,7 +961,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     defaultValue={editingProduct?.category || 'traditional'}
                     className="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-2 py-2 text-black focus:outline-none focus:border-black font-medium"
                   >
-                    <option value="traditional">Imperial Agbada</option>
+                    <option value="traditional">Imperial Suit</option>
                     <option value="senator-kaftan">Senator & Kaftan</option>
                     <option value="bespoke-suits">Bespoke Suiting</option>
                     <option value="evening-gowns">Couture Gowns</option>

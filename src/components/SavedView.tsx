@@ -57,7 +57,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
             Sign In to Access Your Saved Outfits
           </h2>
           <p className="text-sm text-zinc-600 max-w-md mx-auto leading-relaxed">
-            Save your favorite Senator suits, Agbadas, and bespoke tuxedos across devices. Sign in or create an account to view and manage your saved luxury wardrobe.
+            Save your favorite Senator suits, traditional suits, and bespoke tuxedos across devices. Sign in or create an account to view and manage your saved luxury wardrobe.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -162,7 +162,7 @@ export const SavedView: React.FC<SavedViewProps> = ({
               Your Saved Wardrobe is Empty
             </h3>
             <p className="text-xs sm:text-sm text-zinc-500 max-w-md mx-auto leading-relaxed">
-              Explore our ready-to-wear Senator cuts, authentic Agbadas, and Italian suits. Click the heart icon on any outfit to save it here for later.
+              Explore our ready-to-wear Senator cuts, traditional suits, and Italian suits. Click the heart icon on any outfit to save it here for later.
             </p>
           </div>
           <button

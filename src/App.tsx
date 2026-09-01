@@ -79,7 +79,7 @@ export function App() {
       if (
         Array.isArray(parsed) &&
         parsed.length === 2 &&
-        parsed.includes('prod_agbada_01') &&
+        parsed.includes('prod_suit_01') &&
         parsed.includes('prod_senator_02')
       ) {
         localStorage.removeItem('yk_user_wishlist');
@@ -208,14 +208,19 @@ export function App() {
       return;
     }
 
-    fetch('/api/orders', { credentials: 'include' })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.orders && Array.isArray(data.orders)) {
-          setOrders(data.orders);
-        }
-      })
-      .catch((err) => console.error('Failed to load initial orders:', err));
+    const fetchOrders = () =>
+      fetch('/api/orders', { credentials: 'include' })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.orders && Array.isArray(data.orders)) {
+            setOrders(data.orders);
+          }
+        })
+        .catch((err) => console.error('Failed to refresh orders:', err));
+
+    fetchOrders();
+    const refreshTimer = window.setInterval(fetchOrders, 3000);
+    return () => window.clearInterval(refreshTimer);
   }, [currentUser]);
 
   // Product CRUD Operations for Admin
@@ -342,55 +347,6 @@ export function App() {
     showToast(`Order #${newOrder.orderNumber} successfully booked with Master Tailor!`);
   };
 
-  // Advance production stage for real-time demonstration
-  const handleAdvanceOrderStage = async (orderId: string) => {
-    try {
-      const res = await fetch(`/api/orders/${orderId}/advance`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.order) {
-          setOrders((prev) => prev.map((o) => (o.id === orderId ? data.order : o)));
-          const currentMilestone = data.order.milestones[data.order.currentStageIndex];
-          showToast(`Atelier stage advanced: ${currentMilestone?.label || 'Next stage'}`);
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn('Network stage advance failed, applying local state fallback:', e);
-    }
-
-    // Local fallback if network endpoint is unavailable or returns non-JSON
-    setOrders((prev) =>
-      prev.map((order) => {
-        if (order.id !== orderId) return order;
-        if (order.currentStageIndex < order.milestones.length - 1) {
-          const updatedMilestones = [...order.milestones];
-          updatedMilestones[order.currentStageIndex] = {
-            ...updatedMilestones[order.currentStageIndex],
-            completed: true,
-            active: false,
-          };
-          const nextIndex = order.currentStageIndex + 1;
-          updatedMilestones[nextIndex] = {
-            ...updatedMilestones[nextIndex],
-            active: true,
-            timestamp: 'Updated Just Now',
-          };
-          showToast(`Atelier stage advanced: ${updatedMilestones[nextIndex].label}`);
-          return {
-            ...order,
-            currentStageIndex: nextIndex,
-            milestones: updatedMilestones,
-          };
-        }
-        return order;
-      })
-    );
-  };
-
   // Jump to Chat with specific tailor & pre-filled context
   const handleOpenChatWithTailor = (tailorName: string, context?: string) => {
     setChatTailorName(tailorName);
@@ -499,7 +455,6 @@ export function App() {
             currency={currency}
             currentUser={currentUser}
             onOpenAuth={() => setIsAuthModalOpen(true)}
-            onAdvanceOrderStage={handleAdvanceOrderStage}
           />
         )}
 
@@ -657,6 +612,11 @@ export function App() {
         onLogin={handleLogin}
         onLogout={handleLogout}
         onOpenMeasurements={() => setIsMeasurementModalOpen(true)}
+        onOpenWishlist={() => {
+          setIsAuthModalOpen(false);
+          setActiveTab('saved');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
         onUpdateProfile={handleUpdateProfile}
         orders={orders}
         currency={currency}

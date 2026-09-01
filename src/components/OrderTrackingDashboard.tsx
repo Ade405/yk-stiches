@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   PackageCheck, 
   Search, 
   Clock, 
   Scissors, 
-  Sparkles, 
   CheckCircle2, 
   CircleDot, 
   Truck, 
@@ -15,8 +14,6 @@ import {
   Calendar, 
   Layers, 
   ShieldCheck, 
-  Play,
-  RotateCcw,
   Printer,
   ChevronRight,
   ExternalLink,
@@ -33,7 +30,6 @@ interface OrderTrackingDashboardProps {
   currency: CurrencyCode;
   currentUser?: UserAccount | null;
   onOpenAuth?: () => void;
-  onAdvanceOrderStage?: (orderId: string) => void;
 }
 
 export const OrderTrackingDashboard: React.FC<OrderTrackingDashboardProps> = ({
@@ -42,11 +38,9 @@ export const OrderTrackingDashboard: React.FC<OrderTrackingDashboardProps> = ({
   currency,
   currentUser,
   onOpenAuth,
-  onAdvanceOrderStage,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrderId, setSelectedOrderId] = useState<string>(orders[0]?.id || '');
-  const [isSimulating, setIsSimulating] = useState(false);
 
   // If user is not logged in, prompt them to sign in
   if (!currentUser) {
@@ -85,27 +79,16 @@ export const OrderTrackingDashboard: React.FC<OrderTrackingDashboardProps> = ({
     ? orders
     : orders.filter((o) => o.customerEmail?.toLowerCase() === currentUser.email?.toLowerCase()) || [];
   
-  // Display orders fallback to general workshop queue if none match directly
-  const displayOrders = userOrders.length > 0 ? userOrders : orders;
+  // Only show orders that still have an unfinished production milestone.
+  const displayOrders = userOrders.filter((order) => {
+    const finalMilestone = order.milestones[order.milestones.length - 1];
+    return !finalMilestone?.completed;
+  });
 
   // Find active order
   const activeOrder = displayOrders.find(
-    (o) => o.id === selectedOrderId || o.orderNumber.toLowerCase() === searchQuery.trim().toLowerCase()
-  ) || displayOrders[0];
-
-  useEffect(() => {
-    if (displayOrders.length > 0 && !selectedOrderId) {
-      setSelectedOrderId(displayOrders[0].id);
-    }
-  }, [displayOrders, selectedOrderId]);
-
-  const handleSimulateAdvance = async () => {
-    if (!activeOrder || !onAdvanceOrderStage) return;
-    setIsSimulating(true);
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    onAdvanceOrderStage(activeOrder.id);
-    setIsSimulating(false);
-  };
+    (o) => o.id === selectedOrderId || (searchQuery.trim() && o.orderNumber.toLowerCase() === searchQuery.trim().toLowerCase())
+  );
 
   if (!activeOrder && displayOrders.length === 0) {
     return (
@@ -119,10 +102,12 @@ export const OrderTrackingDashboard: React.FC<OrderTrackingDashboardProps> = ({
     );
   }
 
-  const currentStage = activeOrder.milestones[activeOrder.currentStageIndex];
+  const currentStage = activeOrder?.milestones[activeOrder.currentStageIndex];
   const progressPercent = Math.min(
     100,
-    Math.round(((activeOrder.currentStageIndex + (currentStage?.completed ? 1 : 0.5)) / activeOrder.milestones.length) * 100)
+    activeOrder
+      ? Math.round(((activeOrder.currentStageIndex + (currentStage?.completed ? 1 : 0.5)) / activeOrder.milestones.length) * 100)
+      : 0
   );
 
   return (
@@ -155,22 +140,48 @@ export const OrderTrackingDashboard: React.FC<OrderTrackingDashboardProps> = ({
             />
           </div>
 
-          {/* Quick Select from existing orders */}
-          {displayOrders.length > 1 && (
-            <select
-              value={activeOrder?.id}
-              onChange={(e) => setSelectedOrderId(e.target.value)}
-              aria-label="Select active order"
-              className="bg-zinc-50 border border-zinc-300 text-black text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-black cursor-pointer font-semibold max-w-full"
-            >
-              {displayOrders.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.orderNumber} ({o.items[0]?.title?.slice(0, 20) || 'Garment'}...)
-                </option>
-              ))}
-            </select>
-          )}
         </div>
+      </div>
+
+      {/* Active orders remain compact until the customer selects one. */}
+      <div className="space-y-3">
+        {displayOrders.map((order) => {
+          const orderStage = order.milestones[order.currentStageIndex];
+          const isExpanded = order.id === activeOrder?.id;
+          return (
+            <button
+              key={order.id}
+              type="button"
+              onClick={() => setSelectedOrderId(isExpanded ? '' : order.id)}
+              aria-expanded={isExpanded}
+              className={`w-full text-left rounded-2xl border p-4 transition-all ${
+                isExpanded
+                  ? 'border-black bg-zinc-950 text-white shadow-lg'
+                  : 'border-zinc-200 bg-white text-black hover:border-zinc-400'
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className={`text-[11px] font-semibold uppercase tracking-wider ${isExpanded ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    Active Order
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-serif-luxury font-bold">{order.orderNumber}</span>
+                    <span className={`text-xs truncate ${isExpanded ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                      {order.items[0]?.title || 'Bespoke garment'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-semibold ${isExpanded ? 'text-white' : 'text-zinc-700'}`}>
+                    {orderStage?.label || 'In progress'}
+                  </span>
+                  <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Main Order Overview Details & Tracking Stage */}
@@ -226,24 +237,6 @@ export const OrderTrackingDashboard: React.FC<OrderTrackingDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Live Interactive Simulator Banner */}
-              <div className="bg-zinc-900 rounded-xl p-3.5 border border-zinc-800 flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-white" />
-                  <span className="text-zinc-300">
-                    Live Workshop Link: Advance the atelier production milestone.
-                  </span>
-                </div>
-                <button
-                  id="simulate-stage-advance-btn"
-                  onClick={handleSimulateAdvance}
-                  disabled={isSimulating || activeOrder.currentStageIndex >= activeOrder.milestones.length - 1}
-                  className="flex items-center gap-1.5 bg-white hover:bg-zinc-200 text-black px-3.5 py-1.5 rounded-lg font-bold transition-all disabled:opacity-40"
-                >
-                  <Play className="w-3 h-3" />
-                  <span>{isSimulating ? 'Updating...' : 'Advance Stage'}</span>
-                </button>
-              </div>
             </div>
 
             {/* Step-by-Step Milestone Visualizer */}
@@ -435,4 +428,3 @@ export const OrderTrackingDashboard: React.FC<OrderTrackingDashboardProps> = ({
     </div>
   );
 };
-

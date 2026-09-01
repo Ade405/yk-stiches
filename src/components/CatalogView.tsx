@@ -32,7 +32,7 @@ interface CatalogViewProps {
 
 const CATEGORIES = [
   { id: 'all', label: 'All Clothes' },
-  { id: 'traditional', label: 'Imperial Agbada' },
+  { id: 'traditional', label: 'Imperial Suit' },
   { id: 'senator-kaftan', label: 'Senator & Kaftans' },
   { id: 'bespoke-suits', label: 'Bespoke Suiting' },
   { id: 'evening-gowns', label: 'Couture Gowns' },
@@ -175,7 +175,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             <span>Discerning Aristocracy</span>
           </h1>
           <p className="text-sm sm:text-base text-zinc-600 leading-relaxed max-w-2xl">
-            Explore YK Stitches’ collections of hand-embroidered Agbada robes, bespoke Senator suits, and red-carpet couture. Every seam is cut to anatomical blueprints by master pattern drafters.
+            Explore YK Stitches’ collections of hand-embroidered suits, bespoke Senator suits, and red-carpet couture. Every seam is cut to anatomical blueprints by master pattern drafters.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -305,7 +305,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 <option value="all">All Prices</option>
                 <option value="under-200">Under $200 (Accessories & RTW)</option>
                 <option value="200-350">$200 - $350 (Senator & Kaftan)</option>
-                <option value="350-500">$350 - $500 (Imperial Agbada)</option>
+                <option value="350-500">$350 - $500 (Imperial Suit)</option>
                 <option value="500-plus">$500+ (Master Couture & Velvet)</option>
               </select>
             </div>
@@ -533,4 +533,3 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     </div>
   );
 };
-

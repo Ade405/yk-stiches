@@ -56,13 +56,13 @@ export interface TailorMeasurementProfile {
   hip: number;
   inseam: number;
   thigh: number;
-  agbadaKaftanLength?: number;
+  suitKaftanLength?: number;
   notes?: string;
   updatedAt: string;
 }
 
 export interface CustomTailoringOption {
-  garmentBase: string; // 'Senator Suit' | 'Royal Agbada' | 'Italian Tuxedo' | 'Kaftan Lounge' | 'Structured Corset Gown' | 'Safari Bush Jacket'
+  garmentBase: string; // 'Senator Suit' | 'Royal Suit' | 'Italian Tuxedo' | 'Kaftan Lounge' | 'Structured Corset Gown' | 'Safari Bush Jacket'
   fabric: string;
   fabricColor: string;
   collarStyle: string; // 'Mandarin / Banded' | 'Cuban Notch' | 'Classic Spread' | 'Shawl Silk Lapel' | 'Grandad Collar'

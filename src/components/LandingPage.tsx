@@ -13,6 +13,7 @@ import {
   Crown, 
   Check, 
   Star, 
+  ChevronRight,
   Eye,
   ShoppingBag,
   ExternalLink,
@@ -60,8 +61,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       badge: 'Popular Choice',
     },
     {
-      id: 'agbada',
-      title: '3-Piece Royal Agbada',
+      id: 'suit',
+      title: '3-Piece Royal Suit',
       tagline: 'Wedding & Celebration Wear',
       desc: 'Grand flowing outer robe, inner shirt, and matching trousers with detailed embroidery.',
       image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80',
@@ -117,7 +118,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   const testimonials = [
     {
-      quote: "YK Stitches made my wedding Agbada and Senator outfits. The fit was 100% perfect, right out of the package without any adjustments needed.",
+      quote: "YK Stitches made my wedding Suit and Senator outfits. The fit was 100% perfect, right out of the package without any adjustments needed.",
       author: "Oladipo Adeleke",
       title: "Business Executive",
       location: "Lagos & London",
@@ -182,7 +183,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </h1>
 
               <p className="text-base sm:text-lg text-zinc-600 max-w-2xl leading-relaxed">
-                Handmade Senator suits, 3-piece Agbadas, formal tuxedos, and evening dresses. Tailored to your exact body measurements using high quality fabrics with fast worldwide delivery.
+                Handmade Senator suits, 3-piece Suits, formal tuxedos, and evening dresses. Tailored to your exact body measurements using high quality fabrics with fast worldwide delivery.
               </p>
 
               {/* Action Buttons */}
@@ -254,7 +255,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="relative h-96 sm:h-[460px] overflow-hidden group">
                     <img
                       src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=900&q=80"
-                      alt="Handmade Royal Agbada"
+                      alt="Handmade Royal Suit"
                       className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6 text-white">
@@ -262,7 +263,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Featured Outfit</span>
                       </div>
-                      <h3 className="text-xl font-bold font-serif-luxury">Royal Agbada 3-Piece Set</h3>
+                      <h3 className="text-xl font-bold font-serif-luxury">Royal suit 3-Piece Set</h3>
                       <p className="text-xs text-zinc-200 mt-1 line-clamp-2">
                         Made with fine Swiss wool-cashmere with detailed gold chest embroidery.
                       </p>

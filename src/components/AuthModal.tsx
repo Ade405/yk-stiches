@@ -33,6 +33,7 @@ interface AuthModalProps {
   onLogin: (user: UserAccount) => void;
   onLogout: () => void;
   onOpenMeasurements: () => void;
+  onOpenWishlist: () => void;
   onUpdateProfile: (user: UserAccount) => void;
   initialMode?: 'user-login' | 'register' | 'profile' | 'admin-login';
   orders?: OrderRecord[];
@@ -98,7 +99,7 @@ const DigitalReceiptModal: React.FC<{
           <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-200 col-span-2">
             <span className="text-zinc-500 block">Customer & Delivery:</span>
             <span className="font-bold text-black block">{order.customerName}</span>
-            <span className="text-zinc-600 block text-[11px] truncate">{order.customerEmail} · {order.shippingAddress}</span>
+            <span className="text-zinc-600 block text-[11px] truncate">{order.customerEmail} · {order.shippingAddress || order.deliveryAddress}</span>
           </div>
         </div>
 
@@ -109,7 +110,7 @@ const DigitalReceiptModal: React.FC<{
             {order.items.map((item) => (
               <div key={item.id} className="p-3 flex items-center justify-between text-xs">
                 <div>
-                  <span className="font-bold text-black block">{item.product.title}</span>
+                  <span className="font-bold text-black block">{item.product?.title || item.title || 'Bespoke garment'}</span>
                   <span className="text-zinc-500 text-[11px]">
                     Size: {item.selectedSize} · Qty: {item.quantity}
                     {item.isCustomTailored && ' · (Custom Bespoke Fitting)'}
@@ -170,6 +171,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onLogin,
   onLogout,
   onOpenMeasurements,
+  onOpenWishlist,
   onUpdateProfile,
   initialMode = 'user-login',
   orders = [],
@@ -244,16 +246,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     ordersCount: 3,
     measurementsCount: 2,
     vipTier: 'Aristocrat',
-    tailorNotes: 'Prefers extra 1.5 inch sleeve ease for ceremonial agbada drape.',
+    tailorNotes: 'Prefers extra 1.5 inch sleeve ease for ceremonial suit drape.',
     savedMeasurements: {
       chest: '42 in',
       shoulders: '19.5 in',
-      agbadaLength: '58 in',
+      suitLength: '58 in',
       neck: '16.5 in',
       trouserLength: '41 in',
       waist: '34 in',
     },
-    wishlist: ['prod_agbada_01', 'prod_senator_02'],
+    wishlist: ['prod_suit_01', 'prod_senator_02'],
   };
 
   const DEMO_ADMIN: UserAccount = {
@@ -474,13 +476,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={onOpenMeasurements}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-black text-white hover:bg-zinc-800 text-xs font-bold transition-colors"
-                >
-                  My Sizes
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={onOpenMeasurements}
+                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-black text-white hover:bg-zinc-800 text-xs font-bold transition-colors"
+                  >
+                    My Sizes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenWishlist}
+                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-zinc-100 text-black border border-zinc-300 hover:bg-zinc-200 text-xs font-bold transition-colors"
+                  >
+                    Saved Wardrobe
+                  </button>
+                </div>
 
                 {/* Profile Navigation Tabs */}
                 <div className="grid grid-cols-2 gap-1 p-1 bg-zinc-100 rounded-xl border border-zinc-200 text-xs font-bold">

@@ -23,6 +23,10 @@ Prerequisites:
 4. Open:
    `http://localhost:3000`
 
+## Deployment and production
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the complete production deployment guide, environment variables, HTTPS setup, health checks, and launch checklist.
+
 ## Security status
 
 ### Added now

@@ -56,7 +56,7 @@ export const MeasurementModal: React.FC<MeasurementModalProps> = ({
       hip: 40,
       inseam: 32,
       thigh: 23,
-      agbadaKaftanLength: 56,
+      suitKaftanLength: 56,
       notes: '',
       updatedAt: new Date().toISOString().split('T')[0],
     };

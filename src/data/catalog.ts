@@ -57,8 +57,8 @@ export const LUXURY_FABRICS_CATALOG = [
 
 export const PRODUCTS_CATALOG: ProductItem[] = [
   {
-    id: 'prod_agbada_imperial',
-    title: 'The Imperial Grand Agbada 3-Piece',
+    id: 'prod_suit_imperial',
+    title: 'The Imperial Grand Suit 3-Piece',
     subtitle: 'Grand ceremonial robe, matching tunic & tapered trousers',
     category: 'traditional',
     gender: 'men',

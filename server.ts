@@ -221,11 +221,11 @@ const initialUsers: UserRecord[] = [
     ordersCount: 3,
     measurementsCount: 2,
     vipTier: 'Aristocrat',
-    tailorNotes: 'Prefers extra 1.5 inch sleeve ease for ceremonial agbada drape. Gold thread embroidery enthusiast.',
+    tailorNotes: 'Prefers extra 1.5 inch sleeve ease for ceremonial suit drape. Gold thread embroidery enthusiast.',
     savedMeasurements: {
       chest: '42 in',
       shoulders: '19.5 in',
-      agbadaLength: '58 in',
+      Length: '58 in',
       neck: '16.5 in',
       trouserLength: '41 in',
       waist: '34 in',
@@ -607,7 +607,7 @@ const initialOrders: OrderRecord[] = [
     items: [
       {
         id: 'item_1',
-        title: 'Imperial Royal Agbada 3-Piece Suite',
+        title: 'Imperial Royal Suit 3-Piece Suite',
         fabric: 'Heavy Swiss Voile & Gold Thread Embroidery',
         color: 'Emerald & Gold Brocade',
         quantity: 1,
@@ -638,7 +638,7 @@ const initialOrders: OrderRecord[] = [
     measurementsSummary: {
       'Chest Width': '42 in',
       'Shoulder Span': '19.5 in',
-      'Agbada Length': '58 in',
+      'Suit Length': '58 in',
       'Sleeve Span': '34 in',
       'Neck Size': '16.5 in',
       'Trouser Inseam': '32.5 in',
@@ -805,7 +805,7 @@ app.post('/api/tailor-chat', async (req, res) => {
 
     const ai = getGeminiClient();
 
-    const systemInstruction = `You are ${tailorName || 'Master Tailor Adeyinka'}, the renowned Head Artisan and Style Consultant at "YK Stitches Company" (a high-end bespoke atelier celebrated for modern African luxury tailoring, agbada, senator cuts, Italian wool suits, kaftans, and bespoke bridal/evening wear).
+    const systemInstruction = `You are ${tailorName || 'Master Tailor Adeyinka'}, the renowned Head Artisan and Style Consultant at "YK Stitches Company" (a high-end bespoke atelier celebrated for modern African luxury tailoring, suits, senator cuts, Italian wool suits, kaftans, and bespoke bridal/evening wear).
 
 Your Personality:
 - Deeply knowledgeable, warm, courteous, impeccably stylish, and attentive to fine garment craftsmanship.
@@ -854,12 +854,12 @@ Your Personality:
       fallbackReply += `For your bespoke measurements, here are the three crucial dimensions we prioritize for a razor-sharp silhouette:
 1. **Chest / Bust:** Wrap the tape snug but relaxed across the fullest part of your chest under your armpits.
 2. **Shoulder Span:** Measure horizontally from the edge of your left shoulder bone across to the right bone.
-3. **Collar & Agbada / Shirt Length:** Measure around the base of your neck, and from neck base down to your preferred hem.
+3. **Collar & Suit / Shirt Length:** Measure around the base of your neck, and from neck base down to your preferred hem.
 Feel free to save these directly in our Custom Tailoring Studio!`;
     } else if (lowerMsg.includes('fabric') || lowerMsg.includes('material') || lowerMsg.includes('silk') || lowerMsg.includes('linen') || lowerMsg.includes('wool') || lowerMsg.includes('brocade')) {
       fallbackReply += `We curate only world-class textiles. For warm climate ceremonies, our Pure Swiss Voile and 100% Heavy Irish Linen provide unmatched breathability with crisp structure. For galas and formal suits, our Super 150s Italian Wool and Obsidian Velvet drape with regal prestige.`;
     } else if (lowerMsg.includes('wedding') || lowerMsg.includes('party') || lowerMsg.includes('event') || lowerMsg.includes('style')) {
-      fallbackReply += `For momentous celebrations, our **Imperial 3-Piece Royal Agbada** in Emerald or Champagne Brocade paired with gold chain-stitch embroidery is the pinnacle of luxury. Alternatively, a sharp **Mandarin Collar Senator Cut** in Italian Cashmere Blend delivers timeless dignity.`;
+      fallbackReply += `For momentous celebrations, our **Imperial 3-Piece Royal Suit** in Emerald or Champagne Brocade paired with gold chain-stitch embroidery is the pinnacle of luxury. Alternatively, a sharp **Mandarin Collar Senator Cut** in Italian Cashmere Blend delivers timeless dignity.`;
     } else if (lowerMsg.includes('track') || lowerMsg.includes('order') || lowerMsg.includes('delivery')) {
       fallbackReply += `You can monitor every phase of your garment on our live Real-Time Tracking Dashboard—from pattern drafting and embroidery to final steam pressing and dispatch. We document each milestone with artisan notes!`;
     } else {
