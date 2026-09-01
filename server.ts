@@ -192,6 +192,23 @@ const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_K
     })
   : null;
 
+if (supabase) {
+  void supabase.from('users').select('id').limit(1).then(({ error }) => {
+    if (error) {
+     console.error('Supabase connection check failed:', {
+       code: error.code,
+       message: error.message,
+       details: error.details,
+       hint: error.hint,
+     });
+    } else {
+     console.log('Supabase users table connection verified');
+    }
+  });
+} else {
+  console.warn('Supabase persistence is not configured; user registrations will remain in memory');
+}
+
 const normalizeUserRow = (row: any): UserRecord => ({
   id: row.id,
   name: row.name,
@@ -643,7 +660,12 @@ app.post('/api/auth/register', async (req, res) => {
     if (saveError) {
       usersDatabase.pop();
       passwordRecords.delete(email);
-      console.error('Supabase registration save failed:', saveError.message);
+      console.error('Supabase registration save failed:', {
+        code: 'code' in saveError ? saveError.code : undefined,
+        message: saveError.message,
+        details: 'details' in saveError ? saveError.details : undefined,
+        hint: 'hint' in saveError ? saveError.hint : undefined,
+      });
       return res.status(503).json({ error: 'Account could not be saved. Please try again.' });
     }
   }
