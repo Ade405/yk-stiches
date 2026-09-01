@@ -580,7 +580,7 @@ app.post('/api/auth/demo', (req, res) => {
   return res.json(createSession(req, res, demoUser));
 });
 
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Name, valid email, and an 8-character password are required' });
@@ -613,6 +613,40 @@ app.post('/api/auth/register', (req, res) => {
   };
   usersDatabase.push(newUser);
   setPassword(email, password);
+
+  if (supabase) {
+    let saveError: Error | null = null;
+    try {
+      const { error } = await supabase.from('users').upsert({
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        phone: newUser.phone,
+        role: newUser.role,
+        avatar: newUser.avatar,
+        address: newUser.address,
+        city: newUser.city,
+        country: newUser.country,
+        joined_date: newUser.joinedDate,
+        total_spent: newUser.totalSpent,
+        orders_count: newUser.ordersCount,
+        measurements_count: newUser.measurementsCount,
+        vip_tier: newUser.vipTier,
+        tailor_notes: newUser.tailorNotes,
+        saved_measurements: newUser.savedMeasurements || {},
+      }, { onConflict: 'id' });
+      saveError = error;
+    } catch (error) {
+      saveError = error instanceof Error ? error : new Error('Unknown Supabase error');
+    }
+
+    if (saveError) {
+      usersDatabase.pop();
+      passwordRecords.delete(email);
+      console.error('Supabase registration save failed:', saveError.message);
+      return res.status(503).json({ error: 'Account could not be saved. Please try again.' });
+    }
+  }
 
   return res.status(201).json(createSession(req, res, newUser));
 });
