@@ -64,3 +64,26 @@ Before going live:
 ## Notes
 
 This application is not yet a fully production-hardened SaaS system. The current implementation closes several critical gaps for local/demo use, but real customer-facing launch still requires the items in the security plan above.
+
+## Continue here next
+
+Completed:
+- Render deployment is live.
+- Supabase is connected for customer profiles.
+- Customer email/password authentication uses Supabase Auth.
+- Customer sessions are persisted in Supabase.
+- Mobile quick-view and authentication UI improvements are complete.
+
+Before continuing:
+1. Run `supabase/migrations/001_create_sessions.sql` in the Supabase SQL Editor.
+2. Redeploy the latest `main` branch on Render.
+3. Test customer registration, sign-in, logout, and sign-in after a Render restart.
+
+Next implementation priorities:
+- Add forgot-password, password-reset, and change-password flows.
+- Move product and order persistence fully to Supabase.
+- Move admin image uploads to Supabase Storage instead of base64 data URLs.
+- Add email verification/resend controls.
+- Add monitoring, error tracking, audit logs, and automated security tests.
+
+Payments are intentionally unchanged for now.
