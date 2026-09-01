@@ -53,7 +53,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const curatedCollections = [
     {
       id: 'senators',
-      title: 'Senator Suits',
+      title: 'Three Piece Suits',
       tagline: 'Classic Men\'s Wear',
       desc: 'Clean collar styles, hidden buttons, and fine fabrics tailored for events and business.',
       image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=800&q=80',
@@ -267,9 +267,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       <p className="text-xs text-zinc-200 mt-1 line-clamp-2">
                         Made with fine Swiss wool-cashmere with detailed gold chest embroidery.
                       </p>
-                      <div className="mt-4 pt-3 border-t border-white/20">
-                        <span className="font-serif-luxury font-bold text-lg">{formatPrice(420, currency)}</span>
-                      </div>
+                      <div className="mt-4 pt-3 border-t border-white/20" />
                     </div>
                   </div>
                 </div>
