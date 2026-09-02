@@ -205,16 +205,16 @@ import { MASTER_TAILORS } from './src/data/tailors.js';
 
 let productsDatabase = [...PRODUCTS_CATALOG];
 
-const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+const supabase = hasValidSupabaseConfig
+  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
       },
     })
   : null;
-const supabaseAuth = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY
-  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+const supabaseAuth = hasValidSupabaseConfig
+  ? createClient(supabaseUrl, supabaseAnonKey, {
      auth: {
        persistSession: false,
        autoRefreshToken: false,
@@ -238,6 +238,26 @@ if (supabase) {
 } else {
   console.warn('Supabase persistence is not configured; user registrations will remain in memory');
 }
+
+function hasRealSupabaseValue(value?: string): boolean {
+  if (!value) return false;
+  const normalized = value.trim();
+  if (!normalized || normalized === '******') return false;
+  const placeholders = ['your-', 'your_', 'xyzcompany', 'example.com', 'supabase.co', 'placeholder', 'changeme'];
+  return !placeholders.some((placeholder) => normalized.toLowerCase().includes(placeholder));
+}
+
+const supabaseUrl = process.env.SUPABASE_URL?.trim();
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY?.trim();
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+const hasValidSupabaseConfig = Boolean(
+  supabaseUrl &&
+  supabaseAnonKey &&
+  supabaseServiceRoleKey &&
+  hasRealSupabaseValue(supabaseUrl) &&
+  hasRealSupabaseValue(supabaseAnonKey) &&
+  hasRealSupabaseValue(supabaseServiceRoleKey)
+);
 
 const normalizeUserRow = (row: any): UserRecord => ({
   id: row.id,
