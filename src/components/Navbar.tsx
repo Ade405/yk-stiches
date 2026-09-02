@@ -91,7 +91,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   const visibleNavItems = allNavItems.filter((item) => {
-    if (isStaff) return false;
+    if (isStaff && item.id !== 'tracking' && item.id !== 'admin') return false;
     if (item.id === 'saved') return false;
     if (item.adminOnly && currentUser?.role !== 'admin') return false;
     if (item.id === 'tracking' && !currentUser) return false;

@@ -1583,16 +1583,17 @@ Feel free to save these directly in our Custom Tailoring Studio!`;
 
 // API: Get All Orders or Search by Order Number / Customer
 app.get('/api/orders', requireAuth, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   if (supabase) {
     try {
       const { data, error } = await supabase.from('orders').select('*');
       if (!error && data) {
         const rows = data.map(normalizeOrderRow);
-        const knownOrders = new Map<string, OrderRecord>(
-          ordersDatabase.map((order) => [order.id, order])
-        );
-        rows.forEach((order) => knownOrders.set(order.id, order));
-        const allOrders = [...knownOrders.values()];
+        const allOrders = rows.length > 0
+          ? [...new Map(
+              [...ordersDatabase, ...rows].map((order) => [order.id, order])
+            ).values()]
+          : ordersDatabase;
         const orders = req.authenticatedUser?.role === 'admin'
           ? allOrders
           : allOrders.filter((order) => order.customerEmail.toLowerCase() === req.authenticatedUser?.email.toLowerCase());
