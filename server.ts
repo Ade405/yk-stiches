@@ -1588,9 +1588,14 @@ app.get('/api/orders', requireAuth, async (req, res) => {
       const { data, error } = await supabase.from('orders').select('*');
       if (!error && data) {
         const rows = data.map(normalizeOrderRow);
+        const knownOrders = new Map<string, OrderRecord>(
+          ordersDatabase.map((order) => [order.id, order])
+        );
+        rows.forEach((order) => knownOrders.set(order.id, order));
+        const allOrders = [...knownOrders.values()];
         const orders = req.authenticatedUser?.role === 'admin'
-          ? rows
-          : rows.filter((order) => order.customerEmail.toLowerCase() === req.authenticatedUser?.email.toLowerCase());
+          ? allOrders
+          : allOrders.filter((order) => order.customerEmail.toLowerCase() === req.authenticatedUser?.email.toLowerCase());
         return res.json({ orders });
       }
     } catch (error) {

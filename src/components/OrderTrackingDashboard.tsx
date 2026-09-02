@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   PackageCheck, 
   Search, 
@@ -41,6 +41,16 @@ export const OrderTrackingDashboard: React.FC<OrderTrackingDashboardProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrderId, setSelectedOrderId] = useState<string>(orders[0]?.id || '');
+
+  useEffect(() => {
+    if (orders.length === 0) {
+      setSelectedOrderId('');
+      return;
+    }
+    if (!orders.some((order) => order.id === selectedOrderId)) {
+      setSelectedOrderId(orders[0].id);
+    }
+  }, [orders, selectedOrderId]);
 
   // If user is not logged in, prompt them to sign in
   if (!currentUser) {
