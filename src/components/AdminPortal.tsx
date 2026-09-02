@@ -60,12 +60,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   currentUser,
   onLogout,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'sales' | 'users' | 'inventory' | 'orders'>('sales');
+  const [activeSubTab, setActiveSubTab] = useState<'sales' | 'users' | 'inventory' | 'orders' | 'security'>('sales');
 
   // Users CRM state
   const [usersList, setUsersList] = useState<UserAccount[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
   const [userSearch, setUserSearch] = useState('');
+  const [auditLogs, setAuditLogs] = useState<Array<{ id: string; event_type: string; action: string; actor_email?: string; actor_name?: string; status?: string; created_at?: string; error_message?: string }>>([]);
 
   // Sales filter state
   const [salesSearch, setSalesSearch] = useState('');
@@ -94,6 +95,25 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       })
       .catch((err) => console.error('Failed to load users for CRM:', err));
   }, [orders]);
+
+  useEffect(() => {
+    if (activeSubTab !== 'security' || !currentUser || currentUser.role !== 'admin') {
+      return;
+    }
+
+    fetch('/api/audit-logs', { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.logs && Array.isArray(data.logs)) {
+          setAuditLogs(data.logs);
+        }
+      })
+      .catch((err) => console.error('Failed to load audit logs:', err));
+  }, [activeSubTab, currentUser]);
+
+  const handleExportAuditLogs = () => {
+    window.open('/api/audit-logs/export', '_blank', 'noopener,noreferrer');
+  };
 
   // Aggregate Sales & Financial Metrics
   const totalRevenue = orders.reduce((sum, o) => sum + (o.paymentStatus === 'paid' ? o.totalAmount : 0), 0);
@@ -321,7 +341,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       </div>
 
       {/* Primary Module Navigation Tabs */}
-      <div className="bg-white border border-zinc-200 rounded-2xl p-1.5 grid grid-cols-2 md:grid-cols-4 gap-1.5 shadow-sm">
+      <div className="bg-white border border-zinc-200 rounded-2xl p-1.5 grid grid-cols-2 md:grid-cols-5 gap-1.5 shadow-sm">
         <button
           onClick={() => setActiveSubTab('sales')}
           className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${
@@ -369,7 +389,87 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <Scissors className="w-4 h-4" />
           <span>Workshop Order Routing</span>
         </button>
+
+        <button
+          onClick={() => setActiveSubTab('security')}
+          className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${
+            activeSubTab === 'security'
+              ? 'bg-black text-white shadow-md'
+              : 'text-zinc-600 hover:text-black hover:bg-zinc-100'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>Security & Audit Logs</span>
+        </button>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 0. SECURITY & AUDIT LOGS TAB */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'security' && (
+        <div className="space-y-6">
+          <div className="bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-black">Security & Audit Logs</h2>
+              <p className="text-xs text-zinc-500">Authentication events, password activity, and privileged access history.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleExportAuditLogs}
+              className="flex items-center gap-2 bg-black text-white hover:bg-zinc-800 font-bold text-xs px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Export CSV
+            </button>
+          </div>
+
+          <div className="bg-white border border-zinc-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-xs">
+                <thead className="bg-zinc-50 text-zinc-600 uppercase tracking-wider">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Event</th>
+                    <th className="px-4 py-3 font-semibold">Actor</th>
+                    <th className="px-4 py-3 font-semibold">Action</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-10 text-center text-zinc-500">
+                        No audit records yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    auditLogs.map((log) => (
+                      <tr key={log.id} className="border-t border-zinc-200 align-top">
+                        <td className="px-4 py-3 font-medium text-black">{log.event_type}</td>
+                        <td className="px-4 py-3 text-zinc-700">
+                          {log.actor_name || log.actor_email || 'System'}
+                        </td>
+                        <td className="px-4 py-3 text-zinc-700">{log.action}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-bold uppercase ${
+                            log.status === 'success' ? 'bg-emerald-100 text-emerald-700' :
+                            log.status === 'failure' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {log.status || 'success'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-zinc-500">
+                          {log.created_at ? new Date(log.created_at).toLocaleString() : '—'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 1. SALES & REVENUE TAB */}

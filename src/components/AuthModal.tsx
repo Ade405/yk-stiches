@@ -618,6 +618,55 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </button>
                 </div>
 
+                <div className="p-4 bg-zinc-50 border border-zinc-200 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-zinc-700">Security</h4>
+                    <span className="text-[10px] text-zinc-500">Password</span>
+                  </div>
+                  <form onSubmit={handleChangePasswordSubmit} className="space-y-3 text-xs">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Current password</label>
+                      <input
+                        type="password"
+                        name="currentPassword"
+                        required
+                        minLength={8}
+                        placeholder="Enter current password"
+                        className="w-full bg-white border border-zinc-300 rounded-xl px-3 py-2 text-xs text-black focus:outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">New password</label>
+                      <input
+                        type="password"
+                        name="newPassword"
+                        required
+                        minLength={8}
+                        placeholder="At least 8 characters"
+                        className="w-full bg-white border border-zinc-300 rounded-xl px-3 py-2 text-xs text-black focus:outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-zinc-700 mb-1">Confirm new password</label>
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        required
+                        minLength={8}
+                        placeholder="Confirm new password"
+                        className="w-full bg-white border border-zinc-300 rounded-xl px-3 py-2 text-xs text-black focus:outline-none focus:border-black"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full bg-zinc-900 text-white hover:bg-zinc-700 font-bold py-2.5 rounded-xl text-[11px] transition-colors"
+                    >
+                      {isSubmitting ? 'Updating...' : 'Change Password'}
+                    </button>
+                  </form>
+                </div>
+
                 {/* Profile Navigation Tabs */}
                 <div className="grid grid-cols-2 gap-1 p-1 bg-zinc-100 rounded-xl border border-zinc-200 text-xs font-bold">
                   <button
