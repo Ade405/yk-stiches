@@ -174,18 +174,18 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             Artisanal Precision for the <br className="hidden sm:inline" />
             <span>Discerning Aristocracy</span>
           </h1>
-          <p className="text-sm sm:text-base text-zinc-600 leading-relaxed max-w-2xl">
+          <p className="text-xs sm:text-base text-zinc-600 leading-snug sm:leading-relaxed max-w-[17rem] sm:max-w-2xl">
             Explore YK Stitches’ collections of hand-embroidered suits, bespoke Senator suits, and red-carpet couture. Every seam is cut to anatomical blueprints by master pattern drafters.
           </p>
 
-          <div className="flex flex-wrap items-center gap-4 pt-2">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
             <button
               id="hero-chat-tailor-btn"
               onClick={() => onOpenChatWithTailor?.('Adeyinka Adebowale', 'Inquiry about custom tailoring and sizing')}
-              className="flex items-center gap-2 bg-black hover:bg-zinc-800 text-white font-bold px-6 py-3 rounded-xl shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="flex items-center gap-2 bg-black hover:bg-zinc-800 text-white font-bold px-4 py-2.5 sm:px-6 sm:py-3 rounded-xl shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] text-sm sm:text-base leading-tight"
             >
-              <Scissors className="w-4 h-4" />
-              <span>Chat With Tailors For Custom Fit</span>
+              <Scissors className="w-4 h-4 shrink-0" />
+              <span className="whitespace-normal">Chat With Tailors For Custom Fit</span>
             </button>
             <div className="flex items-center gap-6 text-xs text-zinc-600 pt-2 sm:pt-0 font-medium">
               <div className="flex items-center gap-1.5">
