@@ -76,6 +76,20 @@ const searchSchema = z.object({
   orderNumber: z.string().trim().min(1).max(100).optional(),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().trim().email().max(254),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8).max(256),
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(8).max(256),
+  newPassword: z.string().min(8).max(256),
+});
+
 if (isProduction && (!adminPassword || !demoUserPassword || !tailorPassword)) {
   throw new Error('ADMIN_PASSWORD, DEMO_USER_PASSWORD, and TAILOR_PASSWORD are required in production');
 }
@@ -563,6 +577,105 @@ function verifyAgainstRecords(password: string, records: { salt: string; hash: s
   });
 }
 
+// Audit logging helper
+async function logAudit(
+  eventType: string,
+  action: string,
+  options: {
+    actorId?: string;
+    actorEmail?: string;
+    actorName?: string;
+    resourceType?: string;
+    resourceId?: string;
+    resourceName?: string;
+    details?: Record<string, any>;
+    ipAddress?: string;
+    userAgent?: string;
+    status?: 'success' | 'failure' | 'blocked';
+    errorMessage?: string;
+  } = {}
+) {
+  if (!supabase) return;
+
+  try {
+    await supabase.from('audit_logs').insert({
+      event_type: eventType,
+      actor_id: options.actorId,
+      actor_email: options.actorEmail,
+      actor_name: options.actorName,
+      resource_type: options.resourceType,
+      resource_id: options.resourceId,
+      resource_name: options.resourceName,
+      action,
+      details: options.details || {},
+      ip_address: options.ipAddress,
+      user_agent: options.userAgent,
+      status: options.status || 'success',
+      error_message: options.errorMessage,
+    });
+  } catch (error) {
+    console.error('Failed to log audit event:', error);
+  }
+}
+
+// Password recovery token management
+function generateRecoveryToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function hashRecoveryToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+async function createPasswordRecoveryToken(userId: string, email: string, tokenType: 'password_reset' | 'email_verification', req: express.Request) {
+  if (!supabase) return null;
+
+  const token = generateRecoveryToken();
+  const tokenHash = hashRecoveryToken(token);
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+  const { error } = await supabase.from('password_recovery_tokens').insert({
+    user_id: userId,
+    email: email.toLowerCase(),
+    token_hash: tokenHash,
+    token_type: tokenType,
+    expires_at: expiresAt.toISOString(),
+    ip_address: req.ip,
+    user_agent: req.get('user-agent'),
+  });
+
+  if (error) {
+    console.error('Failed to create recovery token:', error);
+    return null;
+  }
+
+  return token;
+}
+
+async function verifyAndInvalidateRecoveryToken(email: string, token: string, tokenType: string) {
+  if (!supabase) return null;
+
+  const tokenHash = hashRecoveryToken(token);
+  const { data: tokenRecord, error } = await supabase
+    .from('password_recovery_tokens')
+    .select('id, user_id, is_valid, expires_at')
+    .eq('email', email.toLowerCase())
+    .eq('token_hash', tokenHash)
+    .eq('token_type', tokenType)
+    .eq('is_valid', true)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle();
+
+  if (error || !tokenRecord) {
+    return null;
+  }
+
+  // Mark token as used
+  await supabase.from('password_recovery_tokens').update({ is_valid: false, used_at: new Date().toISOString() }).eq('id', tokenRecord.id);
+
+  return tokenRecord.user_id;
+}
+
 async function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
   const user = await getAuthenticatedUser(req);
   if (!user) return res.status(401).json({ error: 'Authentication required' });
@@ -643,8 +756,23 @@ app.post('/api/auth/login', async (req, res) => {
         return res.status(403).json({ error: 'Your account profile is not available yet' });
       }
 
-      return res.json(await createSession(req, res, user));
+      const sessionResult = await createSession(req, res, user);
+      await logAudit('auth_login', 'Login successful', {
+        actorId: user.id,
+        actorEmail: user.email,
+        actorName: user.name,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+      return res.json(sessionResult);
     } catch {
+      await logAudit('auth_login', 'Login attempt failed', {
+        actorEmail: email,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        status: 'failure',
+        errorMessage: 'Supabase auth error',
+      });
       return res.status(401).json({ error: 'Invalid email or password' });
     }
   }
@@ -654,11 +782,26 @@ app.post('/api/auth/login', async (req, res) => {
   const validPassword = verifyPassword(email, password) ||
     (requestedRole === 'tailor' && verifyAgainstRecords(password, legacyTailorPasswordRecords));
 
-  if (!user || !validPassword || (requestedRole === 'tailor' && user.vipTier !== 'Artisan Tailor')) {
-    return res.status(401).json({ error: 'Invalid email or password' });
-  }
+   if (!user || !validPassword || (requestedRole === 'tailor' && user.vipTier !== 'Artisan Tailor')) {
+     await logAudit('auth_login', 'Login attempt failed', {
+       actorEmail: email,
+       ipAddress: req.ip,
+       userAgent: req.get('user-agent'),
+       status: 'failure',
+       errorMessage: 'Invalid email or password',
+     });
+     return res.status(401).json({ error: 'Invalid email or password' });
+   }
 
-  return res.json(await createSession(req, res, user));
+   const sessionResult = await createSession(req, res, user);
+   await logAudit('auth_login', 'Login successful', {
+     actorId: user.id,
+     actorEmail: user.email,
+     actorName: user.name,
+     ipAddress: req.ip,
+     userAgent: req.get('user-agent'),
+   });
+   return res.json(sessionResult);
 });
 
 app.post('/api/auth/demo', async (req, res) => {
@@ -741,8 +884,22 @@ app.post('/api/auth/register', async (req, res) => {
 
     usersDatabase.push(newUser);
     if (data.session) {
-      return res.status(201).json(await createSession(req, res, newUser));
+      const sessionResult = await createSession(req, res, newUser);
+      await logAudit('auth_register', 'User registered successfully', {
+        actorId: newUser.id,
+        actorEmail: newUser.email,
+        actorName: newUser.name,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+      return res.status(201).json(sessionResult);
     }
+    await logAudit('auth_register', 'User registered (email verification required)', {
+      actorEmail: newUser.email,
+      actorName: newUser.name,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
     return res.status(201).json({
       user: publicUser(newUser),
       requiresEmailConfirmation: true,
@@ -806,7 +963,15 @@ app.post('/api/auth/register', async (req, res) => {
     }
   }
 
-  return res.status(201).json(await createSession(req, res, newUser));
+  const sessionResult = await createSession(req, res, newUser);
+  await logAudit('auth_register', 'User registered successfully', {
+    actorId: newUser.id,
+    actorEmail: newUser.email,
+    actorName: newUser.name,
+    ipAddress: req.ip,
+    userAgent: req.get('user-agent'),
+  });
+  return res.status(201).json(sessionResult);
 });
 
 app.get('/api/auth/session', async (req, res) => {
@@ -821,11 +986,188 @@ app.get('/api/auth/session', async (req, res) => {
 
 app.post('/api/auth/logout', async (req, res) => {
   const sessionId = parseCookies(req)[SESSION_COOKIE];
+  const user = await getAuthenticatedUser(req);
+  
   if (sessionId && supabase) {
     await supabase.from('sessions').delete().eq('id', hashSessionId(sessionId));
   }
+  
+  if (user) {
+    await logAudit('auth_logout', 'User logged out', {
+      actorId: user.id,
+      actorEmail: user.email,
+      actorName: user.name,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+  }
+  
   clearSessionCookie(req, res);
   return res.status(204).send();
+});
+
+// Forgot password: request password reset token
+app.post('/api/auth/forgot-password', authRateLimiter, async (req, res) => {
+  const parsed = forgotPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Valid email address required' });
+  }
+
+  const email = sanitizeUserText(parsed.data.email, 254).toLowerCase();
+  const user = usersDatabase.find((u) => u.email.toLowerCase() === email);
+
+  // Always return success to prevent email enumeration
+  if (!user || !supabase) {
+    return res.json({ message: 'If an account exists, a password reset link has been sent to the email address' });
+  }
+
+  try {
+    const token = await createPasswordRecoveryToken(user.id, email, 'password_reset', req);
+    if (!token) {
+      return res.json({ message: 'If an account exists, a password reset link has been sent to the email address' });
+    }
+
+    // Log the request
+    await logAudit('password_reset', 'Password reset requested', {
+      actorEmail: email,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    // TODO: Send email with reset link
+    // const resetLink = `${process.env.APP_URL}/reset-password?token=${token}`;
+    // await sendEmail(email, 'Password Reset Request', resetTemplate(resetLink));
+
+    console.log(`[DEV] Password reset token for ${email}: ${token}`);
+    return res.json({ message: 'If an account exists, a password reset link has been sent to the email address' });
+  } catch (error) {
+    console.error('Failed to process forgot password:', error);
+    return res.json({ message: 'If an account exists, a password reset link has been sent to the email address' });
+  }
+});
+
+// Reset password: verify token and set new password
+app.post('/api/auth/reset-password', authRateLimiter, async (req, res) => {
+  const parsed = resetPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Valid token and password required' });
+  }
+
+  const token = sanitizeUserText(parsed.data.token, 1000);
+  const password = parsed.data.password;
+
+  if (!token || password.length < 8) {
+    return res.status(400).json({ error: 'Valid token and password required' });
+  }
+
+  if (!supabase) {
+    return res.status(503).json({ error: 'Service not available' });
+  }
+
+  try {
+    // Get email from request body or from a previous step
+    // In a real implementation, you'd store the email in the frontend after verify endpoint
+    // For now, we need the email to verify the token
+    const emailBody = (req.body as any).email;
+    if (!emailBody) {
+      return res.status(400).json({ error: 'Email address required' });
+    }
+
+    const email = sanitizeUserText(emailBody, 254).toLowerCase();
+    const userId = await verifyAndInvalidateRecoveryToken(email, token, 'password_reset');
+
+    if (!userId) {
+      await logAudit('password_reset', 'Failed password reset (invalid token)', {
+        actorEmail: email,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        status: 'failure',
+        errorMessage: 'Invalid or expired reset token',
+      });
+      return res.status(401).json({ error: 'Invalid or expired reset link' });
+    }
+
+    // Update password in both in-memory and Supabase auth
+    setPassword(email, password);
+
+    if (supabaseAuth) {
+      try {
+        await supabaseAuth.auth.admin.updateUserById(userId, {
+          password,
+        });
+      } catch (error) {
+        console.error('Failed to update Supabase Auth password:', error);
+        // Continue anyway - local password is set
+      }
+    }
+
+    await logAudit('password_reset', 'Password reset successfully', {
+      actorId: userId,
+      actorEmail: email,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    return res.json({ message: 'Password reset successfully. Please log in with your new password.' });
+  } catch (error) {
+    console.error('Failed to reset password:', error);
+    return res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+// Change password: for authenticated users
+app.post('/api/auth/change-password', requireAuth, authRateLimiter, async (req, res) => {
+  const parsed = changePasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Current password and new password required' });
+  }
+
+  const user = req.authenticatedUser!;
+  const currentPassword = parsed.data.currentPassword;
+  const newPassword = parsed.data.newPassword;
+
+  // Verify current password
+  if (!verifyPassword(user.email, currentPassword)) {
+    await logAudit('password_change', 'Failed password change (invalid current password)', {
+      actorId: user.id,
+      actorEmail: user.email,
+      actorName: user.name,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      status: 'failure',
+      errorMessage: 'Invalid current password',
+    });
+    return res.status(401).json({ error: 'Current password is incorrect' });
+  }
+
+  try {
+    // Update password in both in-memory and Supabase auth
+    setPassword(user.email, newPassword);
+
+    if (supabaseAuth) {
+      try {
+        await supabaseAuth.auth.admin.updateUserById(user.id, {
+          password: newPassword,
+        });
+      } catch (error) {
+        console.error('Failed to update Supabase Auth password:', error);
+        // Continue anyway - local password is set
+      }
+    }
+
+    await logAudit('password_change', 'Password changed successfully', {
+      actorId: user.id,
+      actorEmail: user.email,
+      actorName: user.name,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    return res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Failed to change password:', error);
+    return res.status(500).json({ error: 'Failed to change password' });
+  }
 });
 interface OrderMilestone {
   id: string;
@@ -1683,6 +2025,111 @@ app.get('/api/analytics/sales', requireAuth, requireStaff, (req, res) => {
     recentTransactions,
   });
 });
+
+// API: Audit logs for compliance and security monitoring
+app.get('/api/audit-logs', requireAuth, requireStaff, async (req, res) => {
+  if (!supabase) {
+    return res.status(501).json({ error: 'Audit logging is not configured' });
+  }
+
+  const limit = Math.min(parseInt((req.query.limit as string) || '50'), 500);
+  const offset = parseInt((req.query.offset as string) || '0');
+  const eventType = (req.query.eventType as string) || undefined;
+  const actorId = (req.query.actorId as string) || undefined;
+
+  try {
+    let query = supabase
+      .from('audit_logs')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (eventType) {
+      query = query.eq('event_type', eventType);
+    }
+    if (actorId) {
+      query = query.eq('actor_id', actorId);
+    }
+
+    const { data: logs, count, error } = await query;
+
+    if (error) {
+      console.error('Audit logs query failed:', error);
+      return res.status(500).json({ error: 'Failed to retrieve audit logs' });
+    }
+
+    await logAudit('audit_logs', 'Audit logs viewed', {
+      actorId: req.authenticatedUser?.id,
+      actorEmail: req.authenticatedUser?.email,
+      actorName: req.authenticatedUser?.name,
+      details: { limit, offset, eventType, actorId },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({
+      logs: logs || [],
+      total: count || 0,
+      limit,
+      offset,
+    });
+  } catch (error) {
+    console.error('Failed to retrieve audit logs:', error);
+    res.status(500).json({ error: 'Failed to retrieve audit logs' });
+  }
+});
+
+// API: Export audit logs for compliance (CSV)
+app.get('/api/audit-logs/export', requireAuth, requireStaff, async (req, res) => {
+  if (!supabase) {
+    return res.status(501).json({ error: 'Audit logging is not configured' });
+  }
+
+  try {
+    const { data: logs, error } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error || !logs) {
+      return res.status(500).json({ error: 'Failed to export audit logs' });
+    }
+
+    // Convert to CSV
+    const csvHeader = ['timestamp', 'event_type', 'actor_email', 'actor_name', 'action', 'resource_type', 'resource_id', 'status', 'ip_address', 'details'].join(',');
+    const csvRows = logs.map((log: any) => [
+      log.created_at,
+      log.event_type,
+      `"${log.actor_email || ''}"`,
+      `"${log.actor_name || ''}"`,
+      `"${log.action || ''}"`,
+      log.resource_type || '',
+      log.resource_id || '',
+      log.status,
+      log.ip_address || '',
+      `"${JSON.stringify(log.details || {}).replace(/"/g, '""')}"`,
+    ].join(','));
+
+    const csv = [csvHeader, ...csvRows].join('\n');
+
+    await logAudit('audit_logs', 'Audit logs exported', {
+      actorId: req.authenticatedUser?.id,
+      actorEmail: req.authenticatedUser?.email,
+      actorName: req.authenticatedUser?.name,
+      details: { recordCount: logs.length },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.header('Content-Type', 'text/csv');
+    res.header('Content-Disposition', `attachment; filename="audit-logs-${Date.now()}.csv"`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Failed to export audit logs:', error);
+    res.status(500).json({ error: 'Failed to export audit logs' });
+  }
+});
+
 app.post('/api/payments/process', requireAuth, async (req, res) => {
   try {
     const {
@@ -1728,6 +2175,23 @@ app.post('/api/payments/process', requireAuth, async (req, res) => {
     const transactionRef = `${refPrefix}-${timestamp.toString().slice(-8)}`;
     const authorizationCode = `AUTH-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
+    await logAudit('payment_processed', 'Payment processed successfully', {
+      actorId: req.authenticatedUser?.id,
+      actorEmail: req.authenticatedUser?.email,
+      actorName: req.authenticatedUser?.name,
+      resourceType: 'payment',
+      resourceId: transactionRef,
+      resourceName: `${currency || 'USD'} ${amount}`,
+      details: {
+        gateway,
+        amount,
+        currency: currency || 'USD',
+        customerEmail,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
     res.json({
       success: true,
       status: 'successful',
@@ -1742,6 +2206,15 @@ app.post('/api/payments/process', requireAuth, async (req, res) => {
       receiptUrl: `/receipts/${transactionRef}`,
     });
   } catch (error: any) {
+    await logAudit('payment_processed', 'Payment processing error', {
+      actorId: req.authenticatedUser?.id,
+      actorEmail: req.authenticatedUser?.email,
+      actorName: req.authenticatedUser?.name,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      status: 'failure',
+      errorMessage: error?.message || 'Unknown error',
+    });
     res.status(500).json({ error: 'Payment processing error' });
   }
 });

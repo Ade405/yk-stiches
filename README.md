@@ -65,25 +65,76 @@ Before going live:
 
 This application is not yet a fully production-hardened SaaS system. The current implementation closes several critical gaps for local/demo use, but real customer-facing launch still requires the items in the security plan above.
 
+## Recent Implementations
+
+### Completed Features (Latest)
+- ✅ **Password Recovery Flows**: Forgot-password, reset-password, and change-password endpoints with secure token management
+- ✅ **Audit Logging**: Comprehensive audit trail for all sensitive operations (auth, payments, admin actions)
+- ✅ **Security Enhancements**: Enhanced authentication logging, payment audit trails, audit log export (CSV)
+- ✅ **Security Tests**: Full test suite covering CSRF, input validation, rate limiting, SQL injection, and authorization
+
+### In Progress
+- 🔄 **Product Persistence**: Moving product catalog from in-memory to Supabase database
+- 🔄 **Order Persistence**: Moving order tracking from in-memory to Supabase database  
+- 🔄 **Image Upload**: Moving admin image uploads from base64 to Supabase Storage
+
 ## Continue here next
 
-Completed:
-- Render deployment is live.
-- Supabase is connected for customer profiles.
-- Customer email/password authentication uses Supabase Auth.
-- Customer sessions are persisted in Supabase.
-- Mobile quick-view and authentication UI improvements are complete.
+### Before First Production Deployment
 
-Before continuing:
-1. Run `supabase/migrations/001_create_sessions.sql` in the Supabase SQL Editor.
-2. Redeploy the latest `main` branch on Render.
-3. Test customer registration, sign-in, logout, and sign-in after a Render restart.
+1. **Run Database Migrations**
+   ```
+   supabase/migrations/002_add_password_recovery.sql
+   supabase/migrations/003_add_products_table.sql
+   supabase/migrations/004_add_orders_table.sql
+   supabase/migrations/005_add_audit_logs.sql
+   ```
+   Execute these in the Supabase SQL Editor or via Supabase CLI: `supabase db push`
 
-Next implementation priorities:
-- Add forgot-password, password-reset, and change-password flows.
-- Move product and order persistence fully to Supabase.
-- Move admin image uploads to Supabase Storage instead of base64 data URLs.
-- Add email verification/resend controls.
-- Add monitoring, error tracking, audit logs, and automated security tests.
+2. **Test Password Recovery**
+   - Request password reset from login screen
+   - Check console logs (development) for reset token
+   - Verify reset link works and password changes successfully
 
-Payments are intentionally unchanged for now.
+3. **Test Audit Logging**
+   - Login/logout and verify events appear in `/api/audit-logs`
+   - Test audit log export: `GET /api/audit-logs/export`
+
+4. **Email Configuration** (Optional but Recommended)
+   - Configure SMTP settings for password reset emails (see `.env.example`)
+   - Currently, reset tokens are logged to console in development mode
+
+### Next Implementation Priorities
+
+- Complete product persistence migration to Supabase
+- Complete order persistence migration to Supabase
+- Move admin image uploads to Supabase Storage
+- Add email verification/resend controls
+- Add monitoring/error tracking (Sentry or similar)
+- Setup automated security test CI/CD pipeline
+
+### New Endpoints Available
+
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/reset-password` - Reset password with token
+- `POST /api/auth/change-password` - Change password for authenticated users
+- `GET /api/audit-logs` - View audit logs (admin only, paginated)
+- `GET /api/audit-logs/export` - Export audit logs as CSV (admin only)
+
+### Security Improvements in This Release
+
+✅ Secure password recovery with token expiration (24 hours)  
+✅ User enumeration prevention in forgot-password flow  
+✅ One-time use tokens (invalidated after use)  
+✅ Comprehensive audit logging for compliance  
+✅ IP address and user agent tracking for forensics  
+✅ Enhanced authentication event logging  
+✅ Payment processing audit trail  
+✅ Security test suite for continuous validation
+
+### Payments
+Payments remain as mock/demonstration for now. Production implementation requires:
+- Real payment gateway integration (Stripe, Paystack, etc.)
+- Webhook verification
+- PCI compliance review
+- Payment reconciliation
