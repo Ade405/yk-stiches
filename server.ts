@@ -488,6 +488,16 @@ function setPassword(email: string, password: string) {
   }
 }
 
+function isKnownStaffEmail(email: string): boolean {
+  const canonical = canonicalizeEmail(email);
+  if (canonical === 'admin@yk.com' || canonical === 'admin@ykstitches.com') return true;
+  return MASTER_TAILORS.some((tailor) => {
+    const primary = `${tailor.id.replace('tailor_', 'tailor.')}@yk.com`;
+    const secondary = `${tailor.id.replace('tailor_', 'tailor.')}@ykstitches.com`;
+    return canonical === primary || canonical === secondary;
+  });
+}
+
 function verifyPassword(email: string, password: string) {
   const matchingAliases = getEmailAliases(email);
   const records = matchingAliases.map((alias) => passwordRecords.get(alias)).filter(Boolean) as { salt: string; hash: string }[];
@@ -773,8 +783,12 @@ app.post('/api/auth/login', async (req, res) => {
   const email = sanitizeUserText(parsed.data.email, 254).toLowerCase();
   const password = parsed.data.password;
   const requestedRole = parsed.data.role === 'tailor' ? 'tailor' : 'user';
+  const canonicalEmail = canonicalizeEmail(email);
+  const localUser = usersDatabase.find((candidate) => canonicalizeEmail(candidate.email) === canonicalEmail) ||
+    ((canonicalEmail === 'admin@yk.com') ? usersDatabase.find((candidate) => candidate.id === 'usr_admin_master') : undefined);
+  const isStaffLogin = requestedRole === 'tailor' || isKnownStaffEmail(email) || Boolean(localUser && localUser.role === 'admin');
 
-  if (supabaseAuth && requestedRole === 'user') {
+  if (supabaseAuth && !isStaffLogin && !localUser && requestedRole !== 'tailor') {
     try {
       const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
       if (error || !data.user) {
@@ -788,7 +802,7 @@ app.post('/api/auth/login', async (req, res) => {
       }
 
       let user = usersDatabase.find((candidate) => candidate.id === data.user.id) ||
-        usersDatabase.find((candidate) => candidate.email.toLowerCase() === email);
+        usersDatabase.find((candidate) => canonicalizeEmail(candidate.email) === canonicalEmail);
       if (!user && supabase) {
         const { data: profile, error: profileError } = await supabase
           .from('users')
@@ -826,9 +840,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
   }
 
-  const canonicalEmail = canonicalizeEmail(email);
-  const user = usersDatabase.find((candidate) => canonicalizeEmail(candidate.email) === canonicalEmail) ||
-    ((canonicalEmail === 'admin@yk.com') ? usersDatabase.find((candidate) => candidate.id === 'usr_admin_master') : undefined);
+  const user = localUser;
   const validPassword = verifyPassword(email, password) ||
     (requestedRole === 'tailor' && verifyAgainstRecords(password, legacyTailorPasswordRecords));
 
