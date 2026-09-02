@@ -774,13 +774,17 @@ async function createSession(req: express.Request, res: express.Response, user: 
       expires_at: new Date(expiresAt).toISOString(),
     });
     if (error) {
-      console.error('Supabase session save failed:', error.message);
-      throw new Error('Unable to create a secure session');
+      console.error('Supabase session save failed; using process-local session fallback:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
     }
-  } else {
-    localSessionStore.set(sessionKey, { userId: user.id, expiresAt });
   }
 
+  // Keep authentication available when the optional persistence schema is incomplete.
+  localSessionStore.set(sessionKey, { userId: user.id, expiresAt });
   setSessionCookie(req, res, sessionId);
   return { user: publicUser(user), expiresAt: new Date(expiresAt).toISOString() };
 }
