@@ -188,11 +188,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [selectedTailorId, setSelectedTailorId] = useState<string>('tailor_yinka');
 
   const [profileTab, setProfileTab] = useState<'orders' | 'address'>('orders');
+  const [recoveryView, setRecoveryView] = useState<'login' | 'request' | 'reset'>('login');
 
   // Form states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryToken, setRecoveryToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
@@ -227,6 +234,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       } else {
         setAuthMode('user-login');
       }
+      setRecoveryView('login');
+      setRecoveryEmail('');
+      setRecoveryToken('');
+      setNewPassword('');
+      setConfirmNewPassword('');
       setErrorMsg('');
       setSuccessMsg('');
       setIsSubmitting(false);
@@ -402,6 +414,92 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setSuccessMsg('Delivery details updated successfully.');
       })
       .catch((error) => setErrorMsg(error instanceof Error ? error.message : 'Unable to update profile'));
+  };
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: recoveryEmail.trim() }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Unable to process password reset request');
+      setSuccessMsg('If an account exists, a reset link has been sent to your email.');
+      setRecoveryView('reset');
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'Unable to process password reset request');
+    }
+  };
+
+  const handlePasswordResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (newPassword.length < 8) {
+      setErrorMsg('New password must be at least 8 characters long.');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setErrorMsg('New password and confirmation do not match.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ token: recoveryToken.trim(), password: newPassword }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Unable to reset password');
+      setSuccessMsg('Password reset successful. You can sign in with your new password.');
+      setRecoveryView('login');
+      setPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setRecoveryToken('');
+      setEmail('');
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'Unable to reset password');
+    }
+  };
+
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    const currentPasswordValue = (e.currentTarget as HTMLFormElement).currentPassword.value as string;
+    const newPasswordValue = (e.currentTarget as HTMLFormElement).newPassword.value as string;
+    const confirmPasswordValue = (e.currentTarget as HTMLFormElement).confirmPassword.value as string;
+
+    if (newPasswordValue !== confirmPasswordValue) {
+      setErrorMsg('New password and confirmation do not match.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ currentPassword: currentPasswordValue, newPassword: newPasswordValue }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Unable to change password');
+      setSuccessMsg('Password changed successfully.');
+      (e.currentTarget as HTMLFormElement).reset();
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'Unable to change password');
+    }
   };
 
   return (
@@ -878,50 +976,179 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                     {/* USER LOGIN FORM */}
                     {authMode === 'user-login' && (
-                      <form onSubmit={handleUserLoginSubmit} className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-semibold text-zinc-700 mb-1">Email Address</label>
-                          <div className="relative">
-                            <Mail className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
+                      recoveryView === 'login' ? (
+                        <form onSubmit={handleUserLoginSubmit} className="space-y-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-zinc-700 mb-1">Email Address</label>
+                            <div className="relative">
+                              <Mail className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
+                              <input
+                                type="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="you@example.com"
+                                className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-3 py-2.5 text-xs text-black focus:outline-none focus:border-black"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-zinc-700 mb-1">Password</label>
+                            <div className="relative">
+                              <Lock className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
+                              <input
+                                type={showPassword ? 'text' : 'password'}
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••••••"
+                                className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-10 py-2.5 text-xs text-black focus:outline-none focus:border-black"
+                              />
+                              <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg bg-white text-zinc-600 hover:bg-zinc-100 hover:text-black" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <button
+                            type="submit"
+                            id="submit-user-login-btn"
+                            disabled={isSubmitting}
+                            className="w-full bg-black text-white hover:bg-zinc-800 font-bold py-3 rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2"
+                          >
+                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                            <span>{isSubmitting ? 'Signing in...' : 'Sign In'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRecoveryEmail(email);
+                              setRecoveryView('request');
+                              setErrorMsg('');
+                              setSuccessMsg('');
+                            }}
+                            className="w-full text-center text-xs font-semibold text-zinc-600 hover:text-black transition-colors"
+                          >
+                            Forgot Password?
+                          </button>
+                        </form>
+                      ) : recoveryView === 'request' ? (
+                        <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-zinc-700 mb-1">Email Address</label>
+                            <div className="relative">
+                              <Mail className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
+                              <input
+                                type="email"
+                                required
+                                value={recoveryEmail}
+                                onChange={(e) => setRecoveryEmail(e.target.value)}
+                                placeholder="you@example.com"
+                                className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-3 py-2.5 text-xs text-black focus:outline-none focus:border-black"
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full bg-black text-white hover:bg-zinc-800 font-bold py-3 rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2"
+                          >
+                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                            <span>{isSubmitting ? 'Sending reset request...' : 'Send reset link'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRecoveryView('login');
+                              setErrorMsg('');
+                              setSuccessMsg('');
+                            }}
+                            className="w-full text-center text-xs font-semibold text-zinc-600 hover:text-black transition-colors"
+                          >
+                            Back to sign in
+                          </button>
+                        </form>
+                      ) : (
+                        <form onSubmit={handlePasswordResetSubmit} className="space-y-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-zinc-700 mb-1">Reset token</label>
                             <input
-                              type="email"
+                              type="text"
                               required
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                              placeholder="you@example.com"
-                              className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-3 py-2.5 text-xs text-black focus:outline-none focus:border-black"
+                              value={recoveryToken}
+                              onChange={(e) => setRecoveryToken(e.target.value)}
+                              placeholder="Paste the reset token from your email"
+                              className="w-full bg-zinc-50 border border-zinc-300 rounded-xl px-3 py-2.5 text-xs text-black focus:outline-none focus:border-black"
                             />
                           </div>
-                        </div>
 
-                        <div>
-                          <label className="block text-xs font-semibold text-zinc-700 mb-1">Password</label>
-                          <div className="relative">
-                            <Lock className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
-                            <input
-                              type={showPassword ? 'text' : 'password'}
-                              required
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              placeholder="••••••••••••"
-                              className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-10 py-2.5 text-xs text-black focus:outline-none focus:border-black"
-                            />
-                            <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg bg-white text-zinc-600 hover:bg-zinc-100 hover:text-black" aria-label={showPassword ? 'Hide password' : 'Show password'}>
-                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
+                          <div>
+                            <label className="block text-xs font-semibold text-zinc-700 mb-1">New password</label>
+                            <div className="relative">
+                              <Lock className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
+                              <input
+                                type={showNewPassword ? 'text' : 'password'}
+                                required
+                                minLength={8}
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="At least 8 characters"
+                                className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-10 py-2.5 text-xs text-black focus:outline-none focus:border-black"
+                              />
+                              <button type="button" onClick={() => setShowNewPassword((visible) => !visible)} className="absolute right-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg bg-white text-zinc-600 hover:bg-zinc-100 hover:text-black" aria-label={showNewPassword ? 'Hide password' : 'Show password'}>
+                                {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
                           </div>
-                        </div>
 
-                        <button
-                          type="submit"
-                          id="submit-user-login-btn"
-                          disabled={isSubmitting}
-                          className="w-full bg-black text-white hover:bg-zinc-800 font-bold py-3 rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2"
-                        >
-                          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-                          <span>{isSubmitting ? 'Signing in...' : 'Sign In'}</span>
-                        </button>
-                      </form>
+                          <div>
+                            <label className="block text-xs font-semibold text-zinc-700 mb-1">Confirm new password</label>
+                            <div className="relative">
+                              <Lock className="w-4 h-4 text-zinc-400 absolute left-3 top-3" />
+                              <input
+                                type={showConfirmNewPassword ? 'text' : 'password'}
+                                required
+                                minLength={8}
+                                value={confirmNewPassword}
+                                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                placeholder="Repeat your new password"
+                                className="w-full bg-zinc-50 border border-zinc-300 rounded-xl pl-9 pr-10 py-2.5 text-xs text-black focus:outline-none focus:border-black"
+                              />
+                              <button type="button" onClick={() => setShowConfirmNewPassword((visible) => !visible)} className="absolute right-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg bg-white text-zinc-600 hover:bg-zinc-100 hover:text-black" aria-label={showConfirmNewPassword ? 'Hide password' : 'Show password'}>
+                                {showConfirmNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full bg-black text-white hover:bg-zinc-800 font-bold py-3 rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2"
+                          >
+                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                            <span>{isSubmitting ? 'Resetting password...' : 'Reset password'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRecoveryView('login');
+                              setRecoveryToken('');
+                              setNewPassword('');
+                              setConfirmNewPassword('');
+                              setErrorMsg('');
+                              setSuccessMsg('');
+                            }}
+                            className="w-full text-center text-xs font-semibold text-zinc-600 hover:text-black transition-colors"
+                          >
+                            Back to sign in
+                          </button>
+                        </form>
+                      )
                     )}
 
                     {/* USER REGISTER / SIGN UP FORM */}
