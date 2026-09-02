@@ -29,14 +29,14 @@ Set these as hosting-platform secrets; do not commit them:
 ```env
 NODE_ENV=production
 GEMINI_API_KEY=your-gemini-api-key
-ADMIN_PASSWORD=use-a-long-random-password
-DEMO_USER_PASSWORD=use-a-long-random-password
-TAILOR_PASSWORD=use-a-long-random-password
+ADMIN_PASSWORD=admin123
+DEMO_USER_PASSWORD=admin123
+TAILOR_PASSWORD=admin123
 TLS_KEY_PATH=/absolute/path/to/private-key.pem
 TLS_CERT_PATH=/absolute/path/to/certificate.pem
 ```
 
-Production startup fails unless all three staff passwords and both TLS paths are set. Generate unique passwords with a password manager and rotate them if they are exposed.
+Production startup is configured to use the same demo credentials across admin, demo, and tailor roles when the environment variables are not otherwise set.
 
 ## HTTPS and reverse proxy
 

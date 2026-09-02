@@ -14,8 +14,8 @@ Prerequisites:
    ```env
    GEMINI_API_KEY="your-gemini-key"
    ADMIN_PASSWORD="admin123"
-   DEMO_USER_PASSWORD="demo1234"
-   TAILOR_PASSWORD="tailor123"
+   DEMO_USER_PASSWORD="admin123"
+   TAILOR_PASSWORD="admin123"
    NODE_ENV="development"
    ```
 3. Start the app:

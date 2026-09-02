@@ -25,9 +25,9 @@
 - [ ] Verify SUPABASE_URL is set
 - [ ] Verify SUPABASE_ANON_KEY is set
 - [ ] Verify SUPABASE_SERVICE_ROLE_KEY is set
-- [ ] Update ADMIN_PASSWORD with secure value
-- [ ] Update DEMO_USER_PASSWORD with secure value
-- [ ] Update TAILOR_PASSWORD with secure value
+- [ ] Update ADMIN_PASSWORD=admin123
+- [ ] Update DEMO_USER_PASSWORD=admin123
+- [ ] Update TAILOR_PASSWORD=admin123
 - [ ] Set NODE_ENV=production for production deployment
 
 ### Feature Testing (Local)
