@@ -25,7 +25,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
@@ -456,6 +456,7 @@ interface SessionRecord {
 }
 
 const passwordRecords = new Map<string, { salt: string; hash: string }>();
+const localSessionStore = new Map<string, { userId: string; expiresAt: number }>();
 const legacyAdminPasswordRecords = ['admin', 'yk2026'].map((password) => hashPassword(password));
 const legacyTailorPasswordRecords = ['tailor', 'admin123', 'yk2026'].map((password) => hashPassword(password));
 
@@ -571,12 +572,24 @@ function hashSessionId(sessionId: string) {
 async function getAuthenticatedUser(req: express.Request): Promise<AuthenticatedUser | null> {
   const sessionId = parseCookies(req)[SESSION_COOKIE];
   if (!sessionId) return null;
+
+  const sessionKey = hashSessionId(sessionId);
+  const localSession = localSessionStore.get(sessionKey);
+  if (localSession && localSession.expiresAt > Date.now()) {
+    const user = usersDatabase.find((candidate) => candidate.id === localSession.userId);
+    if (user) return user;
+    localSessionStore.delete(sessionKey);
+    return null;
+  }
+  if (localSession && localSession.expiresAt <= Date.now()) {
+    localSessionStore.delete(sessionKey);
+  }
   if (!supabase) return null;
 
   const { data: session, error } = await supabase
     .from('sessions')
     .select('user_id, expires_at')
-    .eq('id', hashSessionId(sessionId))
+    .eq('id', sessionKey)
     .gt('expires_at', new Date().toISOString())
     .maybeSingle();
   if (error || !session) {
@@ -752,9 +765,11 @@ function requireStaff(req: express.Request, res: express.Response, next: express
 async function createSession(req: express.Request, res: express.Response, user: UserRecord) {
   const sessionId = crypto.randomBytes(32).toString('base64url');
   const expiresAt = Date.now() + SESSION_TTL_MS;
+  const sessionKey = hashSessionId(sessionId);
+
   if (supabase) {
     const { error } = await supabase.from('sessions').insert({
-      id: hashSessionId(sessionId),
+      id: sessionKey,
       user_id: user.id,
       expires_at: new Date(expiresAt).toISOString(),
     });
@@ -762,7 +777,10 @@ async function createSession(req: express.Request, res: express.Response, user: 
       console.error('Supabase session save failed:', error.message);
       throw new Error('Unable to create a secure session');
     }
+  } else {
+    localSessionStore.set(sessionKey, { userId: user.id, expiresAt });
   }
+
   setSessionCookie(req, res, sessionId);
   return { user: publicUser(user), expiresAt: new Date(expiresAt).toISOString() };
 }
@@ -782,13 +800,14 @@ app.post('/api/auth/login', async (req, res) => {
 
   const email = sanitizeUserText(parsed.data.email, 254).toLowerCase();
   const password = parsed.data.password;
-  const requestedRole = parsed.data.role === 'tailor' ? 'tailor' : 'user';
+  const requestedRole: 'user' | 'tailor' = parsed.data.role === 'tailor' ? 'tailor' : 'user';
+  const isTailorAttempt = requestedRole === 'tailor';
   const canonicalEmail = canonicalizeEmail(email);
   const localUser = usersDatabase.find((candidate) => canonicalizeEmail(candidate.email) === canonicalEmail) ||
     ((canonicalEmail === 'admin@yk.com') ? usersDatabase.find((candidate) => candidate.id === 'usr_admin_master') : undefined);
-  const isStaffLogin = requestedRole === 'tailor' || isKnownStaffEmail(email) || Boolean(localUser && localUser.role === 'admin');
+  const isStaffLogin = isTailorAttempt || isKnownStaffEmail(email) || Boolean(localUser && localUser.role === 'admin');
 
-  if (supabaseAuth && !isStaffLogin && !localUser && requestedRole !== 'tailor') {
+  if (supabaseAuth && !isStaffLogin && !localUser && !isTailorAttempt) {
     try {
       const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
       if (error || !data.user) {
@@ -1049,11 +1068,15 @@ app.get('/api/auth/session', async (req, res) => {
 app.post('/api/auth/logout', async (req, res) => {
   const sessionId = parseCookies(req)[SESSION_COOKIE];
   const user = await getAuthenticatedUser(req);
-  
-  if (sessionId && supabase) {
-    await supabase.from('sessions').delete().eq('id', hashSessionId(sessionId));
+
+  if (sessionId) {
+    const sessionKey = hashSessionId(sessionId);
+    if (supabase) {
+      await supabase.from('sessions').delete().eq('id', sessionKey);
+    }
+    localSessionStore.delete(sessionKey);
   }
-  
+
   if (user) {
     await logAudit('auth_logout', 'User logged out', {
       actorId: user.id,
@@ -1063,7 +1086,7 @@ app.post('/api/auth/logout', async (req, res) => {
       userAgent: req.get('user-agent'),
     });
   }
-  
+
   clearSessionCookie(req, res);
   return res.status(204).send();
 });
