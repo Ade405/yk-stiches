@@ -466,20 +466,39 @@ function hashPassword(password: string, salt = crypto.randomBytes(16).toString('
   };
 }
 
+function canonicalizeEmail(email: string): string {
+  return email.trim().toLowerCase().replace(/@ykstitches\.com$/i, '@yk.com');
+}
+
+function getEmailAliases(email: string): string[] {
+  const canonical = canonicalizeEmail(email);
+  const aliases = new Set<string>([canonical]);
+  if (canonical.endsWith('@yk.com')) {
+    aliases.add(canonical.replace(/@yk\.com$/i, '@ykstitches.com'));
+  }
+  if (canonical.endsWith('@ykstitches.com')) {
+    aliases.add(canonical.replace(/@ykstitches\.com$/i, '@yk.com'));
+  }
+  return [...aliases];
+}
+
 function setPassword(email: string, password: string) {
-  passwordRecords.set(email.toLowerCase(), hashPassword(password));
+  for (const alias of getEmailAliases(email)) {
+    passwordRecords.set(alias, hashPassword(password));
+  }
 }
 
 function verifyPassword(email: string, password: string) {
-  const record = passwordRecords.get(email.toLowerCase());
-  if (!record || !password) return false;
+  const matchingAliases = getEmailAliases(email);
+  const records = matchingAliases.map((alias) => passwordRecords.get(alias)).filter(Boolean) as { salt: string; hash: string }[];
+  if (!records.length || !password) return false;
   const matches = (candidateRecord: { salt: string; hash: string }) => {
     const candidate = crypto.scryptSync(password, candidateRecord.salt, 64);
     const expected = Buffer.from(candidateRecord.hash, 'hex');
     return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
   };
-  return matches(record) ||
-    ((email.toLowerCase() === 'admin@yk.com' || email.toLowerCase() === 'admin@ykstitches.com') &&
+  return records.some(matches) ||
+    (matchingAliases.some((value) => value === 'admin@yk.com' || value === 'admin@ykstitches.com') &&
       legacyAdminPasswordRecords.some(matches));
 }
 
@@ -489,13 +508,14 @@ setPassword('admin@yk.com', adminPassword);
 setPassword('admin@ykstitches.com', adminPassword);
 
 for (const tailor of MASTER_TAILORS) {
-  const email = `${tailor.id.replace('tailor_', 'tailor.')}@yk.com`;
+  const primaryEmail = `${tailor.id.replace('tailor_', 'tailor.')}@yk.com`;
+  const secondaryEmail = `${tailor.id.replace('tailor_', 'tailor.')}@ykstitches.com`;
   const id = `usr_${tailor.id}`;
   if (!usersDatabase.some((user) => user.id === id)) {
     usersDatabase.push({
       id,
       name: tailor.name,
-      email,
+      email: primaryEmail,
       phone: tailor.phone,
       role: 'admin',
       avatar: tailor.avatar,
@@ -510,7 +530,8 @@ for (const tailor of MASTER_TAILORS) {
       tailorNotes: `${tailor.title} · Specialty: ${tailor.specialty}`,
     });
   }
-  setPassword(email, tailorPassword);
+  setPassword(primaryEmail, tailorPassword);
+  setPassword(secondaryEmail, tailorPassword);
 }
 
 function publicUser(user: UserRecord): UserRecord {
@@ -805,8 +826,9 @@ app.post('/api/auth/login', async (req, res) => {
     }
   }
 
-  const user = usersDatabase.find((candidate) => candidate.email.toLowerCase() === email) ||
-    ((email === 'admin@ykstitches.com') ? usersDatabase.find((candidate) => candidate.id === 'usr_admin_master') : undefined);
+  const canonicalEmail = canonicalizeEmail(email);
+  const user = usersDatabase.find((candidate) => canonicalizeEmail(candidate.email) === canonicalEmail) ||
+    ((canonicalEmail === 'admin@yk.com') ? usersDatabase.find((candidate) => candidate.id === 'usr_admin_master') : undefined);
   const validPassword = verifyPassword(email, password) ||
     (requestedRole === 'tailor' && verifyAgainstRecords(password, legacyTailorPasswordRecords));
 
