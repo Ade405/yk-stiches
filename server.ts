@@ -2352,4 +2352,9 @@ async function start() {
   });
 }
 
-start();
+// Avoid opening a network listener when integration tests import the Express app.
+if (process.env.NODE_ENV !== 'test') {
+  start();
+}
+
+export { app };
