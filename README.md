@@ -28,13 +28,7 @@ Luxury tailoring storefront and atelier management app with customer tracking, a
 
 Most storefront and demo flows can run without external service credentials. To use AI-assisted consultation or configured Supabase features, create a `.env.local` file based on `.env.example` and fill in the credentials for the services you have configured.
 
-For a local demo, you can start with:
-```env
-ADMIN_PASSWORD="change-this-demo-password"
-DEMO_USER_PASSWORD="change-this-demo-password"
-TAILOR_PASSWORD="change-this-demo-password"
-NODE_ENV="development"
-```
+For local development, copy `.env.example` to `.env.local`, set unique passwords for the admin, demo user, and tailor accounts, and use `NODE_ENV="development"`. The example file contains placeholders, not usable credentials.
 
 Start the development server:
 ```bash
