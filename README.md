@@ -52,7 +52,7 @@ npm start
 
 Configure production environment variables and terminate HTTPS at a trusted reverse proxy, or configure `TLS_KEY_PATH` and `TLS_CERT_PATH` if the application itself will serve HTTPS. Do not use the demo passwords in production.
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for the production deployment guide, environment variables, HTTPS setup, health checks, and launch checklist.
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the production deployment guide, environment variables, HTTPS setup, health checks, and launch checklist. See [Legal and customer policies](./docs/legal/README.md) for the draft Terms of Use, Privacy Policy, Cookies Notice, Shipping/Returns Policy, and Acceptable Use Policy.
 
 ## Security status
 
@@ -102,6 +102,10 @@ docker compose logs -f app
 Open [http://localhost:3000](http://localhost:3000). To use integrations, copy `.env.example` to `.env.local` and replace every placeholder with real credentials before starting the container. Compose loads `.env.local` if it exists; external Gemini and Supabase services are optional for the basic storefront.
 
 Stop the app with `docker compose down`. The image is multi-stage and runs with production dependencies only. Do not expose demo passwords or default credentials in a public deployment.
+
+## Legal and customer-facing policies
+
+Draft policy documents live in docs/legal/ and are also accessible from the storefront footer. They are templates, not legal advice. Complete the legal business identity, verified contact details, delivery/returns rules, governing law, actual provider/data-transfer disclosures, and retention periods; then obtain qualified legal review before accepting real customer orders. The current payment flow is a demo, and the policies must not be treated as evidence that live payment processing is implemented.
 
 ## Code quality
 
