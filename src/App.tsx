@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { ProductItem, CartItem, OrderRecord, TailorMeasurementProfile, CurrencyCode, UserAccount, NavTabId } from './types';
+import { Sparkles } from 'lucide-react';
+import { AppMainContent } from './components/AppMainContent';
+import { AppOverlays } from './components/AppOverlays';
+import { AtelierFooter } from './components/AtelierFooter';
+import { Navbar } from './components/Navbar';
+import type {
+  CartItem,
+  CurrencyCode,
+  NavTabId,
+  OrderRecord,
+  ProductItem,
+  TailorMeasurementProfile,
+  UserAccount,
+} from './types';
 import { PRODUCTS_CATALOG } from './data/catalog';
 import { DEFAULT_MEASUREMENT_PRESETS } from './data/tailors';
 
@@ -393,7 +406,8 @@ export function App() {
         currentUser={currentUser}
         onLogin={handleLogin}
         onLogout={handleLogout}
-        onOpenMeasurements={() => setIsMeasurementModalOpen(true)}
+        isMeasurementModalOpen={isMeasurementModalOpen}
+        setIsMeasurementModalOpen={setIsMeasurementModalOpen}
         onOpenWishlist={() => {
           setIsAuthModalOpen(false);
           setActiveTab('saved');
