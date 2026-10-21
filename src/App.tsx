@@ -406,6 +406,7 @@ export function App() {
         currentUser={currentUser}
         onLogin={handleLogin}
         onLogout={handleLogout}
+        onOpenMeasurements={() => setIsMeasurementModalOpen(true)}
         isMeasurementModalOpen={isMeasurementModalOpen}
         setIsMeasurementModalOpen={setIsMeasurementModalOpen}
         onOpenWishlist={() => {
