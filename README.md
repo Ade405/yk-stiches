@@ -87,3 +87,25 @@ This application is not yet a fully production-hardened SaaS system. Review the 
 Supabase migrations and integration settings are documented in `.env.example` and the `supabase/migrations` directory. Apply migrations to the intended Supabase project before relying on database-backed features. Keep service-role keys and other secrets out of source control.
 
 Payments are currently demonstration/mock flows. Production use requires a real payment gateway, webhook verification, PCI compliance review, and payment reconciliation.
+
+
+## Docker Compose
+
+Docker Compose builds and starts the production app (Express API plus the built Vite storefront) as one service:
+
+```bash
+docker compose up --build -d
+docker compose ps
+docker compose logs -f app
+```
+
+Open [http://localhost:3000](http://localhost:3000). To use integrations, copy `.env.example` to `.env.local` and replace every placeholder with real credentials before starting the container. Compose loads `.env.local` if it exists; external Gemini and Supabase services are optional for the basic storefront.
+
+Stop the app with `docker compose down`. The image is multi-stage and runs with production dependencies only. Do not expose demo passwords or default credentials in a public deployment.
+
+## Code quality
+
+- `npm run lint` runs the TypeScript check and ESLint rules for tests/config files.
+- `npm run format:check` verifies formatting for the new app modules and deployment/quality configuration.
+- `npm run format` applies Prettier to those enforced files.
+- `npm run check` runs lint, format checks, tests, and the production build.
