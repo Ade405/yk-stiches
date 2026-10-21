@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import { Award, Clock, Mail, MapPin, Phone, Scissors, ShieldCheck } from 'lucide-react';
+import { LegalModal, type LegalDocumentId } from './LegalModal';
 
 export function AtelierFooter() {
+  const [openDocument, setOpenDocument] = useState<LegalDocumentId | null>(null);
+
   return (
     <footer className="bg-zinc-900 text-white border-t border-zinc-800 mt-16">
       {/* Value Proposition Bar */}
@@ -120,8 +124,22 @@ export function AtelierFooter() {
       </div>
     
       <div className="border-t border-zinc-800 py-4 text-center text-xs text-zinc-500">
+        <nav aria-label="Legal and customer policies" className="mb-3 flex flex-wrap justify-center gap-x-4 gap-y-2 px-4">
+          {([
+            ['terms', 'Terms of Use'],
+            ['privacy', 'Privacy Policy'],
+            ['cookies', 'Cookies'],
+            ['shipping', 'Shipping & Returns'],
+            ['acceptable-use', 'Acceptable Use'],
+          ] as const).map(([id, label]) => (
+            <button className="underline underline-offset-4 hover:text-white" key={id} onClick={() => setOpenDocument(id)} type="button">
+              {label}
+            </button>
+          ))}
+        </nav>
         © {new Date().getFullYear()} YK Stitches Atelier. All rights reserved. Handcrafted with bespoke sartorial excellence.
       </div>
+      {openDocument && <LegalModal documentId={openDocument} onClose={() => setOpenDocument(null)} />}
     </footer>
   );
 }
