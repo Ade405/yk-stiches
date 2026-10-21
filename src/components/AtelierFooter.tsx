@@ -1,16 +1,7 @@
-import {
-  Award,
-  Clock,
-  Mail,
-  MapPin,
-  Phone,
-  Scissors,
-  ShieldCheck,
-} from 'lucide-react';
+import { Award, Clock, Mail, MapPin, Phone, Scissors, ShieldCheck } from 'lucide-react';
 
 export function AtelierFooter() {
   return (
-    {/* Monochrome Minimalist Atelier Footer */}
     <footer className="bg-zinc-900 text-white border-t border-zinc-800 mt-16">
       {/* Value Proposition Bar */}
       <div className="border-b border-zinc-800 py-8">
