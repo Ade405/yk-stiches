@@ -18,7 +18,8 @@ interface AppOverlaysProps {
   currentUser: UserAccount | null;
   onLogin: (user: UserAccount) => void;
   onLogout: () => Promise<void>;
-  onOpenMeasurements: () => void;
+  isMeasurementModalOpen: boolean;
+  setIsMeasurementModalOpen: Dispatch<SetStateAction<boolean>>;
   onOpenWishlist: () => void;
   onUpdateProfile: (user: UserAccount) => void;
   orders: OrderRecord[];
@@ -49,7 +50,8 @@ export function AppOverlays(props: AppOverlaysProps) {
     currentUser,
     onLogin,
     onLogout,
-    onOpenMeasurements,
+    isMeasurementModalOpen,
+    setIsMeasurementModalOpen,
     onOpenWishlist,
     onUpdateProfile,
     orders,
@@ -101,8 +103,8 @@ export function AppOverlays(props: AppOverlaysProps) {
       />
 
       <MeasurementModal
-        isOpen={false}
-        onClose={onOpenMeasurements}
+        isOpen={isMeasurementModalOpen}
+        onClose={() => setIsMeasurementModalOpen(false)}
         savedProfiles={measurementProfiles}
         onSaveProfile={onSaveProfile}
         onDeleteProfile={onDeleteProfile}
