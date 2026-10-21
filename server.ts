@@ -2352,4 +2352,9 @@ async function start() {
   });
 }
 
-start();
+// Allow integration tests to import the Express app without binding a production port.
+if (process.env.NODE_ENV !== 'test') {
+  start();
+}
+
+export { app };
