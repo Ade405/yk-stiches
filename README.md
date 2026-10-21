@@ -2,139 +2,88 @@
 
 Luxury tailoring storefront and atelier management app with customer tracking, admin tooling, and AI-assisted tailor consultation.
 
+## Requirements
+
+- Node.js 20 LTS or newer (Node.js 22 LTS recommended)
+- npm (included with Node.js)
+
+## Fresh clone: install, test, and build
+
+1. Clone the repository and enter the project directory:
+   ```bash
+   git clone https://github.com/Ade405/yk-stiches.git
+   cd yk-stiches
+   ```
+2. Install the exact dependency versions recorded in the lockfile:
+   ```bash
+   npm ci
+   ```
+3. Run the TypeScript check, automated tests, and production build:
+   ```bash
+   npm run check
+   ```
+   Or run each step separately with `npm run lint`, `npm test`, and `npm run build`.
+
 ## Run locally
 
-Prerequisites:
-- Node.js 18+
-- A Gemini API key
+Most storefront and demo flows can run without external service credentials. To use AI-assisted consultation or configured Supabase features, create a `.env.local` file based on `.env.example` and fill in the credentials for the services you have configured.
 
-1. Install dependencies:
-   `npm install`
-2. Create `.env.local` with the required values:
-   ```env
-   GEMINI_API_KEY="your-gemini-key"
-   ADMIN_PASSWORD="admin123"
-   DEMO_USER_PASSWORD="admin123"
-   TAILOR_PASSWORD="admin123"
-   NODE_ENV="development"
-   ```
-3. Start the app:
-   `npm run dev`
-4. Open:
-   `http://localhost:3000`
+For a local demo, you can start with:
+```env
+ADMIN_PASSWORD="change-this-demo-password"
+DEMO_USER_PASSWORD="change-this-demo-password"
+TAILOR_PASSWORD="change-this-demo-password"
+NODE_ENV="development"
+```
 
-## Deployment and production
+Start the development server:
+```bash
+npm run dev
+```
+Then open [http://localhost:3000](http://localhost:3000).
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for the complete production deployment guide, environment variables, HTTPS setup, health checks, and launch checklist.
+## Production
+
+Build and start the production server with:
+```bash
+npm run build
+npm start
+``
+
+Configure production environment variables and terminate HTTPS at a trusted reverse proxy, or configure `TLS_KEY_PATH` and `TLS_CERT_PATH` if the application itself will serve HTTPS. Do not use the demo passwords in production.
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the production deployment guide, environment variables, HTTPS setup, health checks, and launch checklist.
 
 ## Security status
 
-### Added now
+### Implemented for local/demo use
+
 - Server-side session cookies (`HttpOnly`, `SameSite=Lax`, `Secure` in production)
 - Session expiration and logout invalidation
 - Password hashing with `scrypt`
 - Admin and authenticated-user middleware
-- Strict security headers (CSP, HSTS in production, X-Frame-Options, X-Content-Type-Options, etc.)
+- Security headers, including CSP, HSTS in production, X-Frame-Options, and X-Content-Type-Options
 - Rate limiting for auth and API traffic
 - Input validation using `zod` for auth and order search payloads
 - Protected route access for admin-only functionality and customer order lookup
-- HTTP redirect to HTTPS in production
+- HTTP-to-HTTPS redirect behavior for production deployments configured for it
 - CSRF validation for mutating requests using per-request tokens and same-origin checks
 
-### Should be added before public production launch
-- Real persistent database (PostgreSQL/MySQL) instead of in-memory arrays
-- Secure payment provider with webhook verification and idempotency
-- Proper file upload validation and storage (not inline base64 data URLs)
-- Role-based access checks for every sensitive endpoint, including audit logs
-- Monitoring, alerting, and error tracking
-- Automated security tests and dependency audits
-- Production TLS certificate management and reverse-proxy hardening
-- Environment secret rotation and `.env` management outside the repo
+### Before a public production launch
 
-## Production checklist
+- Use a persistent database rather than in-memory arrays
+- Integrate a real payment provider with webhook verification and idempotency
+- Validate and store uploaded files securely rather than using inline base64 data URLs
+- Review role-based access checks for every sensitive endpoint, including audit logs
+- Configure monitoring, alerting, and error tracking
+- Run automated security tests and dependency audits
+- Harden production TLS/reverse-proxy configuration
+- Rotate secrets and manage them outside the repository
 
-Before going live:
-- set `NODE_ENV=production`
-- set TLS certificates with `TLS_KEY_PATH` and `TLS_CERT_PATH`
-- configure real secret values for admin, demo, and tailor credentials
-- move session and data storage to a durable backend
-- test authentication flows, authorization checks, and payment processing in staging
-- verify CSP and headers in a deployed production environment
+This application is not yet a fully production-hardened SaaS system. Review the security plan and deployment checklist before handling real customer data or payments.
 
-## Notes
+## Database and integrations
 
-This application is not yet a fully production-hardened SaaS system. The current implementation closes several critical gaps for local/demo use, but real customer-facing launch still requires the items in the security plan above.
+Supabase migrations and integration settings are documented in `.env.example` and the `supabase/migrations` directory. Apply migrations to the intended Supabase project before relying on database-backed features. Keep service-role keys and other secrets out of source control.
 
-## Recent Implementations
-
-### Completed Features (Latest)
-- ✅ **Password Recovery Flows**: Forgot-password, reset-password, and change-password endpoints with secure token management
-- ✅ **Audit Logging**: Comprehensive audit trail for all sensitive operations (auth, payments, admin actions)
-- ✅ **Security Enhancements**: Enhanced authentication logging, payment audit trails, audit log export (CSV)
-- ✅ **Security Tests**: Full test suite covering CSRF, input validation, rate limiting, SQL injection, and authorization
-
-### In Progress
-- 🔄 **Product Persistence**: Moving product catalog from in-memory to Supabase database
-- 🔄 **Order Persistence**: Moving order tracking from in-memory to Supabase database  
-- 🔄 **Image Upload**: Moving admin image uploads from base64 to Supabase Storage
-
-## Continue here next
-
-### Before First Production Deployment
-
-1. **Run Database Migrations**
-   ```
-   supabase/migrations/002_add_password_recovery.sql
-   supabase/migrations/003_add_products_table.sql
-   supabase/migrations/004_add_orders_table.sql
-   supabase/migrations/005_add_audit_logs.sql
-   ```
-   Execute these in the Supabase SQL Editor or via Supabase CLI: `supabase db push`
-
-2. **Test Password Recovery**
-   - Request password reset from login screen
-   - Check console logs (development) for reset token
-   - Verify reset link works and password changes successfully
-
-3. **Test Audit Logging**
-   - Login/logout and verify events appear in `/api/audit-logs`
-   - Test audit log export: `GET /api/audit-logs/export`
-
-4. **Email Configuration** (Optional but Recommended)
-   - Configure SMTP settings for password reset emails (see `.env.example`)
-   - Currently, reset tokens are logged to console in development mode
-
-### Next Implementation Priorities
-
-- Complete product persistence migration to Supabase
-- Complete order persistence migration to Supabase
-- Move admin image uploads to Supabase Storage
-- Add email verification/resend controls
-- Add monitoring/error tracking (Sentry or similar)
-- Setup automated security test CI/CD pipeline
-
-### New Endpoints Available
-
-- `POST /api/auth/forgot-password` - Request password reset
-- `POST /api/auth/reset-password` - Reset password with token
-- `POST /api/auth/change-password` - Change password for authenticated users
-- `GET /api/audit-logs` - View audit logs (admin only, paginated)
-- `GET /api/audit-logs/export` - Export audit logs as CSV (admin only)
-
-### Security Improvements in This Release
-
-✅ Secure password recovery with token expiration (24 hours)  
-✅ User enumeration prevention in forgot-password flow  
-✅ One-time use tokens (invalidated after use)  
-✅ Comprehensive audit logging for compliance  
-✅ IP address and user agent tracking for forensics  
-✅ Enhanced authentication event logging  
-✅ Payment processing audit trail  
-✅ Security test suite for continuous validation
-
-### Payments
-Payments remain as mock/demonstration for now. Production implementation requires:
-- Real payment gateway integration (Stripe, Paystack, etc.)
-- Webhook verification
-- PCI compliance review
-- Payment reconciliation
+Payments are currently demonstration/mock flows. Production use requires a real payment gateway, webhook verification, PCI compliance review, and payment reconciliation.
