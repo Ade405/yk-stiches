@@ -1,25 +1,15 @@
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
-import { createServer } from 'node:net';
 
-let child;
+process.env.NODE_ENV = 'test';
+process.env.ADMIN_PASSWORD ||= 'test-admin-password';
+process.env.DEMO_USER_PASSWORD ||= 'test-demo-password';
+process.env.TAILOR_PASSWORD ||= 'test-tailor-password';
+
+let app;
+let server;
 let baseUrl;
-let serverOutput = '';
 let sessionCookie = '';
-
-async function getFreePort() {
-  const server = createServer();
-  await new Promise((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', resolve);
-  });
-  const address = server.address();
-  const port = typeof address === 'object' && address ? address.port : null;
-  await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
-  assert.ok(port);
-  return port;
-}
 
 function responseCookies(response) {
   const values = typeof response.headers.getSetCookie === 'function'
@@ -53,44 +43,21 @@ async function loginDemo() {
 }
 
 before(async () => {
-  const port = await getFreePort();
-  baseUrl = `http://127.0.0.1:${port}`;
-  child = spawn(
-    process.execPath,
-    ['node_modules/tsx/dist/cli.mjs', 'server.ts'],
-    {
-      env: {
-        ...process.env,
-        PORT: String(port),
-        NODE_ENV: 'development',
-        ADMIN_PASSWORD: 'test-admin-password',
-        DEMO_USER_PASSWORD: 'test-demo-password',
-        TAILOR_PASSWORD: 'test-tailor-password',
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  );
-  child.stdout.on('data', (chunk) => { serverOutput += chunk.toString(); });
-  child.stderr.on('data', (chunk) => { serverOutput += chunk.toString(); });
-
-  const deadline = Date.now() + 20_000;
-  while (Date.now() < deadline) {
-    if (child.exitCode !== null) {
-      throw new Error(`Server exited before becoming ready.\n${serverOutput}`);
-    }
-    try {
-      const response = await fetch(`${baseUrl}/api/csrf-token`);
-      if (response.ok) return;
-    } catch {
-      // Wait for Vite and Express to finish starting.
-    }
-    await new Promise((resolve) => setTimeout(resolve, 200));
-  }
-  throw new Error(`Server did not start in time.\n${serverOutput}`);
+  ({ app } = await import('../server.ts'));
+  server = app.listen(0, '127.0.0.1');
+  await new Promise((resolve, reject) => {
+    server.once('listening', resolve);
+    server.once('error', reject);
+  });
+  const address = server.address();
+  assert.ok(address && typeof address === 'object');
+  baseUrl = `http://127.0.0.1:${address.port}`;
 });
 
-after(() => {
-  if (child && child.exitCode === null && !child.killed) child.kill('SIGTERM');
+after(async () => {
+  if (server?.listening) {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
 });
 
 test('security headers are present on API responses', async () => {
