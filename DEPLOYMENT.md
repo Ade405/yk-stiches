@@ -50,6 +50,19 @@ The application can serve HTTPS directly when `TLS_KEY_PATH` and `TLS_CERT_PATH`
 
 The application uses secure cookies and redirects HTTP to HTTPS in production. Confirm that the proxy forwards HTTPS requests correctly before enabling live accounts.
 
+## Customer policies and privacy readiness
+
+The storefront footer links to draft Terms of Use, Privacy Policy, Cookies Notice, Shipping/Returns Policy, and Acceptable Use Policy. These documents are intentionally marked as drafts because legal entity details, privacy contact, governing law, delivery areas, shipping fees, refund timelines, and the actual production data flows must be verified by the operator.
+
+Before handling real customer information or accepting orders:
+
+- Complete docs/legal/README.md and every placeholder in the legal documents.
+- Verify the public customer-service and privacy contact details and ensure the mailbox is monitored.
+- Map the deployed data flow, including AI prompts sent to Gemini, Supabase use, cookies, browser storage, uploads, logs, and any payment provider.
+- Define and implement retention, access, correction, deletion, and data-subject request workflows.
+- Have the policies reviewed by qualified counsel for Nigeria and every other market served, including applicable data protection and consumer-protection rules.
+- Replace mock payment flows with a real provider and reconcile the checkout UI, terms, receipts, and refund process.
+
 ## Deployment checklist
 
 Before launch:
