@@ -17,8 +17,11 @@ export default [
       'no-debugger': 'error',
       'no-duplicate-imports': 'error',
       'no-unreachable': 'error',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      'eqeqeq': ['error', 'always'],
+      'no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      eqeqeq: ['error', 'always'],
       'prefer-const': 'error',
     },
   },
