@@ -19,7 +19,7 @@ export function AtelierFooter() {
               <p className="text-[11px] text-zinc-400">Individual pattern drafted for every customer</p>
             </div>
           </div>
-    
+
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-black border border-zinc-700 flex items-center justify-center shrink-0">
               <Award className="w-5 h-5 text-white" />
@@ -29,7 +29,7 @@ export function AtelierFooter() {
               <p className="text-[11px] text-zinc-400">Swiss Voiles, Cashmeres, & Handwoven Aso-Oke</p>
             </div>
           </div>
-    
+
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-black border border-zinc-700 flex items-center justify-center shrink-0">
               <Clock className="w-5 h-5 text-white" />
@@ -39,7 +39,7 @@ export function AtelierFooter() {
               <p className="text-[11px] text-zinc-400">Direct photos & notes from your lead cutter</p>
             </div>
           </div>
-    
+
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-black border border-zinc-700 flex items-center justify-center shrink-0">
               <ShieldCheck className="w-5 h-5 text-white" />
@@ -51,7 +51,7 @@ export function AtelierFooter() {
           </div>
         </div>
       </div>
-    
+
       {/* Footer Links & Atelier Addresses */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
         <div className="space-y-3">
@@ -70,7 +70,7 @@ export function AtelierFooter() {
             <span>Haute Couture & Ready-to-Wear</span>
           </div>
         </div>
-    
+
         <div>
           <h4 className="font-serif-luxury font-bold text-xs text-white uppercase tracking-wider mb-3">
             Atelier Locations
@@ -86,7 +86,7 @@ export function AtelierFooter() {
             </div>
           </div>
         </div>
-    
+
         <div>
           <h4 className="font-serif-luxury font-bold text-xs text-white uppercase tracking-wider mb-3">
             Client Concierge
@@ -106,7 +106,7 @@ export function AtelierFooter() {
             </div>
           </div>
         </div>
-    
+
         <div>
           <h4 className="font-serif-luxury font-bold text-xs text-white uppercase tracking-wider mb-3">
             Mobile Payment Gateways
@@ -122,7 +122,7 @@ export function AtelierFooter() {
           </div>
         </div>
       </div>
-    
+
       <div className="border-t border-zinc-800 py-4 text-center text-xs text-zinc-500">
         <nav aria-label="Legal and customer policies" className="mb-3 flex flex-wrap justify-center gap-x-4 gap-y-2 px-4">
           {([
@@ -132,7 +132,12 @@ export function AtelierFooter() {
             ['shipping', 'Shipping & Returns'],
             ['acceptable-use', 'Acceptable Use'],
           ] as const).map(([id, label]) => (
-            <button className="underline underline-offset-4 hover:text-white" key={id} onClick={() => setOpenDocument(id)} type="button">
+            <button
+              className="underline underline-offset-4 hover:text-white"
+              key={id}
+              onClick={() => setOpenDocument(id)}
+              type="button"
+            >
               {label}
             </button>
           ))}
