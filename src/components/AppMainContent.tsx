@@ -5,7 +5,14 @@ import { LandingPage } from './LandingPage';
 import { MasterTailorChat } from './MasterTailorChat';
 import { OrderTrackingDashboard } from './OrderTrackingDashboard';
 import { SavedView } from './SavedView';
-import type { CartItem, CurrencyCode, NavTabId, OrderRecord, ProductItem, UserAccount } from '../types';
+import type {
+  CartItem,
+  CurrencyCode,
+  NavTabId,
+  OrderRecord,
+  ProductItem,
+  UserAccount,
+} from '../types';
 
 interface AppMainContentProps {
   activeTab: NavTabId;
