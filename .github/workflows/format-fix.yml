@@ -13,7 +13,7 @@ jobs:
       - name: Check out selected branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: chore/docker-modularize-lint-format
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
