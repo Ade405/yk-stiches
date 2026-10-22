@@ -11,7 +11,9 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test": "node --import tsx --experimental-test-coverage --test tests/*.test.mjs",
-    "check": "npm run lint && npm test && npm run build"
+    "format:check": "npx --yes prettier@3.6.2 --check .prettierrc.json docker-compose.yml .github/workflows/ci.yml eslint.config.js src/components/AppMainContent.tsx src/components/AppOverlays.tsx src/components/AtelierFooter.tsx",
+    "format": "npx --yes prettier@3.6.2 --write .prettierrc.json docker-compose.yml .github/workflows/ci.yml eslint.config.js src/components/AppMainContent.tsx src/components/AppOverlays.tsx src/components/AtelierFooter.tsx",
+    "check": "npm run lint && npm run format:check && npm test && npm run build"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
