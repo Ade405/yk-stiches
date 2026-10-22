@@ -2352,7 +2352,7 @@ async function start() {
   });
 }
 
-// Avoid opening a network listener when integration tests import the Express app.
+// Allow integration tests to import the Express app without binding a production port.
 if (process.env.NODE_ENV !== 'test') {
   start();
 }
