@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-  Award,
-  Clock,
-  Mail,
-  MapPin,
-  Phone,
-  Scissors,
-  ShieldCheck,
-} from 'lucide-react';
+import { Award, Clock, Mail, MapPin, Phone, Scissors, ShieldCheck } from 'lucide-react';
 import { LegalModal, type LegalDocumentId } from './LegalModal';
 
 export function AtelierFooter() {
@@ -23,8 +15,12 @@ export function AtelierFooter() {
               <Scissors className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h4 className="font-serif-luxury font-bold text-xs text-white">Anatomical Precision</h4>
-              <p className="text-[11px] text-zinc-400">Individual pattern drafted for every customer</p>
+              <h4 className="font-serif-luxury font-bold text-xs text-white">
+                Anatomical Precision
+              </h4>
+              <p className="text-[11px] text-zinc-400">
+                Individual pattern drafted for every customer
+              </p>
             </div>
           </div>
 
@@ -34,7 +30,9 @@ export function AtelierFooter() {
             </div>
             <div>
               <h4 className="font-serif-luxury font-bold text-xs text-white">Imperial Fabrics</h4>
-              <p className="text-[11px] text-zinc-400">Swiss Voiles, Cashmeres, & Handwoven Aso-Oke</p>
+              <p className="text-[11px] text-zinc-400">
+                Swiss Voiles, Cashmeres, & Handwoven Aso-Oke
+              </p>
             </div>
           </div>
 
@@ -43,8 +41,12 @@ export function AtelierFooter() {
               <Clock className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h4 className="font-serif-luxury font-bold text-xs text-white">Live Atelier Tracking</h4>
-              <p className="text-[11px] text-zinc-400">Direct photos & notes from your lead cutter</p>
+              <h4 className="font-serif-luxury font-bold text-xs text-white">
+                Live Atelier Tracking
+              </h4>
+              <p className="text-[11px] text-zinc-400">
+                Direct photos & notes from your lead cutter
+              </p>
             </div>
           </div>
 
@@ -53,7 +55,9 @@ export function AtelierFooter() {
               <ShieldCheck className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h4 className="font-serif-luxury font-bold text-xs text-white">Flawless Fit Guarantee</h4>
+              <h4 className="font-serif-luxury font-bold text-xs text-white">
+                Flawless Fit Guarantee
+              </h4>
               <p className="text-[11px] text-zinc-400">Complimentary atelier adjustments</p>
             </div>
           </div>
@@ -72,7 +76,8 @@ export function AtelierFooter() {
             </span>
           </div>
           <p className="text-xs text-zinc-400 leading-relaxed">
-            Founded in 2012 by Master Tailor Adeyinka. Merging African royal ceremonial vestments with Savile Row suiting discipline.
+            Founded in 2012 by Master Tailor Adeyinka. Merging African royal ceremonial vestments
+            with Savile Row suiting discipline.
           </p>
           <div className="text-[11px] text-white flex items-center gap-2 pt-1 font-semibold">
             <span>Haute Couture & Ready-to-Wear</span>
@@ -120,13 +125,22 @@ export function AtelierFooter() {
             Mobile Payment Gateways
           </h4>
           <p className="text-xs text-zinc-400 leading-relaxed mb-3">
-            Accepting MTN MoMo, Safaricom M-Pesa, Airtel Money, Instant Bank USSD (*737#), and Visa/Mastercard.
+            Accepting MTN MoMo, Safaricom M-Pesa, Airtel Money, Instant Bank USSD (*737#), and
+            Visa/Mastercard.
           </p>
           <div className="flex flex-wrap gap-2 text-[10px]">
-            <span className="px-2 py-1 rounded bg-black border border-zinc-700 text-zinc-300">MTN MoMo</span>
-            <span className="px-2 py-1 rounded bg-black border border-zinc-700 text-zinc-300">M-Pesa</span>
-            <span className="px-2 py-1 rounded bg-black border border-zinc-700 text-zinc-300">Bank USSD</span>
-            <span className="px-2 py-1 rounded bg-black border border-zinc-700 text-zinc-300">Card 3DS</span>
+            <span className="px-2 py-1 rounded bg-black border border-zinc-700 text-zinc-300">
+              MTN MoMo
+            </span>
+            <span className="px-2 py-1 rounded bg-black border border-zinc-700 text-zinc-300">
+              M-Pesa
+            </span>
+            <span className="px-2 py-1 rounded bg-black border border-zinc-700 text-zinc-300">
+              Bank USSD
+            </span>
+            <span className="px-2 py-1 rounded bg-black border border-zinc-700 text-zinc-300">
+              Card 3DS
+            </span>
           </div>
         </div>
       </div>
@@ -136,13 +150,15 @@ export function AtelierFooter() {
           aria-label="Legal and customer policies"
           className="mb-3 flex flex-wrap justify-center gap-x-4 gap-y-2 px-4"
         >
-          {([
-            ['terms', 'Terms of Use'],
-            ['privacy', 'Privacy Policy'],
-            ['cookies', 'Cookies'],
-            ['shipping', 'Shipping & Returns'],
-            ['acceptable-use', 'Acceptable Use'],
-          ] as const).map(([id, label]) => (
+          {(
+            [
+              ['terms', 'Terms of Use'],
+              ['privacy', 'Privacy Policy'],
+              ['cookies', 'Cookies'],
+              ['shipping', 'Shipping & Returns'],
+              ['acceptable-use', 'Acceptable Use'],
+            ] as const
+          ).map(([id, label]) => (
             <button
               className="underline underline-offset-4 hover:text-white"
               key={id}
@@ -153,13 +169,11 @@ export function AtelierFooter() {
             </button>
           ))}
         </nav>
-        © {new Date().getFullYear()} YK Stitches Atelier. All rights reserved. Handcrafted with bespoke sartorial excellence.
+        © {new Date().getFullYear()} YK Stitches Atelier. All rights reserved. Handcrafted with
+        bespoke sartorial excellence.
       </div>
       {openDocument && (
-        <LegalModal
-          documentId={openDocument}
-          onClose={() => setOpenDocument(null)}
-        />
+        <LegalModal documentId={openDocument} onClose={() => setOpenDocument(null)} />
       )}
     </footer>
   );
