@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { Award, Clock, Mail, MapPin, Phone, Scissors, ShieldCheck } from 'lucide-react';
+import {
+  Award,
+  Clock,
+  Mail,
+  MapPin,
+  Phone,
+  Scissors,
+  ShieldCheck,
+} from 'lucide-react';
 import { LegalModal, type LegalDocumentId } from './LegalModal';
 
 export function AtelierFooter() {
@@ -124,7 +132,10 @@ export function AtelierFooter() {
       </div>
 
       <div className="border-t border-zinc-800 py-4 text-center text-xs text-zinc-500">
-        <nav aria-label="Legal and customer policies" className="mb-3 flex flex-wrap justify-center gap-x-4 gap-y-2 px-4">
+        <nav
+          aria-label="Legal and customer policies"
+          className="mb-3 flex flex-wrap justify-center gap-x-4 gap-y-2 px-4"
+        >
           {([
             ['terms', 'Terms of Use'],
             ['privacy', 'Privacy Policy'],
@@ -144,7 +155,12 @@ export function AtelierFooter() {
         </nav>
         © {new Date().getFullYear()} YK Stitches Atelier. All rights reserved. Handcrafted with bespoke sartorial excellence.
       </div>
-      {openDocument && <LegalModal documentId={openDocument} onClose={() => setOpenDocument(null)} />}
+      {openDocument && (
+        <LegalModal
+          documentId={openDocument}
+          onClose={() => setOpenDocument(null)}
+        />
+      )}
     </footer>
   );
 }
