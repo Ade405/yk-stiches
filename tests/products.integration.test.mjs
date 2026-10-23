@@ -44,7 +44,11 @@ async function loginAdmin() {
       role: 'user',
     }),
   });
-  assert.equal(response.status, 200, 'Admin login should succeed in test environment');
+  assert.equal(
+    response.status,
+    200,
+    'Admin login should succeed in test environment',
+  );
   sessionCookie = cookieValue(responseCookies(response), 'yk_session');
   assert.ok(sessionCookie, 'Admin login should set a session cookie');
 }
@@ -81,7 +85,9 @@ before(async () => {
 
 after(async () => {
   if (server?.listening) {
-    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
   }
 });
 
