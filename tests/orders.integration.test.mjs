@@ -12,7 +12,8 @@ let baseUrl;
 let sessionCookie = '';
 let csrfCookie = '';
 let csrfToken = '';
-let demoEmail = '';\nlet demoRole = '';
+let demoEmail = '';
+let demoRole = '';
 
 function responseCookies(response) {
   const values = typeof response.headers.getSetCookie === 'function'
@@ -117,7 +118,9 @@ test('customers can only see their own orders', async () => {
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.ok(Array.isArray(body.orders));
-  if (demoRole !== 'admin') {\n    assert.ok(body.orders.every((order) => order.customerEmail.toLowerCase() === demoEmail));\n  }
+  if (demoRole !== 'admin') {
+    assert.ok(body.orders.every((order) => order.customerEmail.toLowerCase() === demoEmail));
+  }
 });
 
 test('customer sessions cannot advance workshop milestones', async () => {
