@@ -42,7 +42,10 @@ async function loginDemo() {
   assert.equal(response.status, 200);
   sessionCookie = cookieValue(responseCookies(response), 'yk_session');
   assert.ok(sessionCookie, 'Demo login should set a session cookie');
-  return response.json();
+  const data = await response.json();
+  demoEmail = data.user.email.toLowerCase();
+  demoRole = data.user.role;
+  return data;
 }
 
 async function refreshCsrf() {
