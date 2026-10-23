@@ -8,7 +8,9 @@ updates:
     ignore:
       # Major upgrades need an explicit compatibility review before Dependabot opens PRs.
       - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+        update-types:
+          - "version-update:semver-major"
       # plugin-react v6 requires Vite 8, while this app currently uses Vite 6.
       - dependency-name: "@vitejs/plugin-react"
-        versions: [">=6.0.0"]
+        versions:
+          - ">=6.0.0"
