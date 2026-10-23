@@ -11,7 +11,8 @@ let server;
 let baseUrl;
 let sessionCookie = '';
 let csrfCookie = '';
-let csrfToken = '';\nlet demoEmail = '';
+let csrfToken = '';
+let demoEmail = '';
 
 function responseCookies(response) {
   const values = typeof response.headers.getSetCookie === 'function'
