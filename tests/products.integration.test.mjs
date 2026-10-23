@@ -14,9 +14,10 @@ let csrfCookie = '';
 let csrfToken = '';
 
 function responseCookies(response) {
-  const values = typeof response.headers.getSetCookie === 'function'
-    ? response.headers.getSetCookie()
-    : [response.headers.get('set-cookie')].filter(Boolean);
+  const values =
+    typeof response.headers.getSetCookie === 'function'
+      ? response.headers.getSetCookie()
+      : [response.headers.get('set-cookie')].filter(Boolean);
   return values.map((value) => value.split(';', 1)[0]);
 }
 
@@ -124,7 +125,10 @@ test('product creation, update, and deletion are restricted to staff', async () 
   const update = await request('/api/products/integration-product-crud', {
     method: 'PUT',
     headers: adminHeaders(),
-    body: JSON.stringify({ price: 150, description: 'Updated integration test product' }),
+    body: JSON.stringify({
+      price: 150,
+      description: 'Updated integration test product',
+    }),
   });
   assert.equal(update.status, 200);
   const updated = (await update.json()).product;
