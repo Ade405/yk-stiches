@@ -789,6 +789,8 @@ async function createSession(req: express.Request, res: express.Response, user: 
   return { user: publicUser(user), expiresAt: new Date(expiresAt).toISOString() };
 }
 
+app.get('/healthz', (_req, res) => res.status(200).json({ status: 'ok' }));
+
 app.get('/api/csrf-token', (req, res) => {
   const csrfToken = crypto.randomBytes(32).toString('hex');
   setCsrfCookie(req, res, csrfToken);
