@@ -30,6 +30,9 @@ jobs:
       - name: Enforce formatting
         run: npm run format:check
 
+      - name: Audit production dependencies
+        run: npm run audit
+
       - name: Run tests
         run: npm test
 

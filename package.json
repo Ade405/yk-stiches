@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=esm --packages=external --sourcemap --outfile=dist/server.js",
@@ -10,10 +13,11 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "audit": "npm audit --omit=dev",
     "test": "node --import tsx --experimental-test-coverage --test tests/*.test.mjs",
     "format:check": "npx --yes prettier@3.6.2 --check .prettierrc.json docker-compose.yml .github/workflows/ci.yml eslint.config.js src/components/AppMainContent.tsx src/components/AppOverlays.tsx src/components/AtelierFooter.tsx tests/products.integration.test.mjs .github/dependabot.yml",
     "format": "npx --yes prettier@3.6.2 --write .prettierrc.json docker-compose.yml .github/workflows/ci.yml eslint.config.js src/components/AppMainContent.tsx src/components/AppOverlays.tsx src/components/AtelierFooter.tsx tests/products.integration.test.mjs .github/dependabot.yml",
-    "check": "npm run lint && npm run format:check && npm test && npm run build"
+    "check": "npm run lint && npm run format:check && npm run audit && npm test && npm run build"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",
