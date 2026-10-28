@@ -11,32 +11,34 @@ async function getFreePort() {
   });
   const address = server.address();
   const port = typeof address === 'object' && address ? address.port : null;
-  await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  await new Promise((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())),
+  );
   assert.ok(port, 'An available local port should be assigned');
   return port;
 }
 
 test('development server starts and serves the storefront', async (t) => {
   const port = await getFreePort();
-  const child = spawn(
-    process.execPath,
-    ['node_modules/tsx/dist/cli.mjs', 'server.ts'],
-    {
-      env: {
-        ...process.env,
-        PORT: String(port),
-        NODE_ENV: 'development',
-        ADMIN_PASSWORD: 'test-admin-password',
-        DEMO_USER_PASSWORD: 'test-demo-password',
-        TAILOR_PASSWORD: 'test-tailor-password',
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
+  const child = spawn(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'server.ts'], {
+    env: {
+      ...process.env,
+      PORT: String(port),
+      NODE_ENV: 'development',
+      ADMIN_PASSWORD: 'test-admin-password',
+      DEMO_USER_PASSWORD: 'test-demo-password',
+      TAILOR_PASSWORD: 'test-tailor-password',
     },
-  );
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
 
   let output = '';
-  child.stdout.on('data', (chunk) => { output += chunk.toString(); });
-  child.stderr.on('data', (chunk) => { output += chunk.toString(); });
+  child.stdout.on('data', (chunk) => {
+    output += chunk.toString();
+  });
+  child.stderr.on('data', (chunk) => {
+    output += chunk.toString();
+  });
 
   t.after(() => {
     if (child.exitCode === null && !child.killed) child.kill('SIGTERM');
@@ -62,4 +64,36 @@ test('development server starts and serves the storefront', async (t) => {
   assert.match(response.headers.get('content-type') ?? '', /text\/html/i);
   const html = await response.text();
   assert.match(html, /<html|<!doctype html/i);
+});
+
+test('production server refuses to start without required credentials', async () => {
+  const child = spawn(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'server.ts'], {
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      ADMIN_PASSWORD: '',
+      DEMO_USER_PASSWORD: '',
+      TAILOR_PASSWORD: '',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  let output = '';
+  child.stdout.on('data', (chunk) => {
+    output += chunk.toString();
+  });
+  child.stderr.on('data', (chunk) => {
+    output += chunk.toString();
+  });
+
+  const exitCode = await new Promise((resolve, reject) => {
+    child.once('error', reject);
+    child.once('exit', (code) => resolve(code));
+  });
+
+  assert.notEqual(exitCode, 0);
+  assert.match(output, /Missing required production environment variables/);
+  assert.match(output, /ADMIN_PASSWORD/);
+  assert.match(output, /DEMO_USER_PASSWORD/);
+  assert.match(output, /TAILOR_PASSWORD/);
 });

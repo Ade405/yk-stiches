@@ -35,6 +35,21 @@ const hasTlsCertificateConfig = Boolean(process.env.TLS_KEY_PATH && process.env.
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const SESSION_COOKIE = 'yk_session';
 const CSRF_COOKIE = 'yk_csrf';
+const requiredCredentialNames = [
+  'ADMIN_PASSWORD',
+  'DEMO_USER_PASSWORD',
+  'TAILOR_PASSWORD',
+] as const;
+
+if (isProduction) {
+  const missingCredentials = requiredCredentialNames.filter((name) => !process.env[name]);
+  if (missingCredentials.length > 0) {
+    throw new Error(
+      `Missing required production environment variables: ${missingCredentials.join(', ')}`,
+    );
+  }
+}
+
 const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
 const demoUserPassword = process.env.DEMO_USER_PASSWORD || 'admin123';
 const tailorPassword = process.env.TAILOR_PASSWORD || 'admin123';
@@ -108,7 +123,7 @@ app.use((req, res, next) => {
         "object-src 'none'",
         "script-src 'self'",
         "style-src 'self' https://fonts.googleapis.com",
-        "upgrade-insecure-requests",
+        'upgrade-insecure-requests',
       ]
     : [
         "default-src 'self'",
@@ -161,9 +176,18 @@ app.use((req, res, next) => {
   const origin = req.get('Origin');
   const referer = req.get('Referer');
   const expectedOrigin = `${req.protocol}://${req.get('host')}`;
-  const sameOrigin = !origin || origin === expectedOrigin || origin === 'http://localhost:3000' || origin === 'http://127.0.0.1:3000';
-  const trustedReferer = !referer || referer.startsWith(expectedOrigin) || referer.startsWith('http://localhost:3000/') || referer.startsWith('http://127.0.0.1:3000/');
-  const providedToken = typeof req.headers['x-csrf-token'] === 'string' ? req.headers['x-csrf-token'] : '';
+  const sameOrigin =
+    !origin ||
+    origin === expectedOrigin ||
+    origin === 'http://localhost:3000' ||
+    origin === 'http://127.0.0.1:3000';
+  const trustedReferer =
+    !referer ||
+    referer.startsWith(expectedOrigin) ||
+    referer.startsWith('http://localhost:3000/') ||
+    referer.startsWith('http://127.0.0.1:3000/');
+  const providedToken =
+    typeof req.headers['x-csrf-token'] === 'string' ? req.headers['x-csrf-token'] : '';
   const cookieToken = parseCookies(req)[CSRF_COOKIE];
 
   if (!sameOrigin && !trustedReferer) {
@@ -218,43 +242,47 @@ const supabaseAnonKey = process.env.SUPABASE_ANON_KEY?.trim();
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 const hasValidSupabaseConfig = Boolean(
   supabaseUrl &&
-  supabaseAnonKey &&
-  supabaseServiceRoleKey &&
-  hasRealSupabaseValue(supabaseUrl) &&
-  hasRealSupabaseValue(supabaseAnonKey) &&
-  hasRealSupabaseValue(supabaseServiceRoleKey)
+    supabaseAnonKey &&
+    supabaseServiceRoleKey &&
+    hasRealSupabaseValue(supabaseUrl) &&
+    hasRealSupabaseValue(supabaseAnonKey) &&
+    hasRealSupabaseValue(supabaseServiceRoleKey),
 );
 
 const supabase = hasValidSupabaseConfig
   ? createClient(supabaseUrl, supabaseServiceRoleKey, {
-     auth: {
-       persistSession: false,
-       autoRefreshToken: false,
-     },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
     })
   : null;
 const supabaseAuth = hasValidSupabaseConfig
   ? createClient(supabaseUrl, supabaseAnonKey, {
-     auth: {
-       persistSession: false,
-       autoRefreshToken: false,
-     },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
     })
   : null;
 
 if (supabase) {
-  void supabase.from('users').select('id').limit(1).then(({ error }) => {
-    if (error) {
-     console.error('Supabase connection check failed:', {
-       code: error.code,
-       message: error.message,
-       details: error.details,
-       hint: error.hint,
-     });
-    } else {
-     console.log('Supabase users table connection verified');
-    }
-  });
+  void supabase
+    .from('users')
+    .select('id')
+    .limit(1)
+    .then(({ error }) => {
+      if (error) {
+        console.error('Supabase connection check failed:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+      } else {
+        console.log('Supabase users table connection verified');
+      }
+    });
 } else {
   console.warn('Supabase persistence is not configured; user registrations will remain in memory');
 }
@@ -311,13 +339,16 @@ const normalizeOrderRow = (row: any): OrderRecord => ({
   deliveryCity: row.delivery_city || row.deliveryCity || 'Lagos',
   expressDelivery: Boolean(row.express_delivery ?? row.expressDelivery),
   createdAt: row.created_at || row.createdAt || new Date().toISOString(),
-  estimatedDeliveryDate: row.estimated_delivery_date || row.estimatedDeliveryDate || new Date().toISOString(),
-  assignedTailor: row.assigned_tailor || row.assignedTailor || {
-    name: 'Master Tailor Adeyinka',
-    role: 'Founder & Principal Master Cutter',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    phone: '+234 812 345 6789',
-  },
+  estimatedDeliveryDate:
+    row.estimated_delivery_date || row.estimatedDeliveryDate || new Date().toISOString(),
+  assignedTailor: row.assigned_tailor ||
+    row.assignedTailor || {
+      name: 'Master Tailor Adeyinka',
+      role: 'Founder & Principal Master Cutter',
+      avatar:
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+      phone: '+234 812 345 6789',
+    },
   currentStageIndex: Number(row.current_stage_index ?? row.currentStageIndex ?? 0),
   milestones: Array.isArray(row.milestones) ? row.milestones : [],
   measurementsSummary: row.measurements_summary || row.measurementsSummary || {},
@@ -353,7 +384,8 @@ const initialUsers: UserRecord[] = [
     email: 'adeyinka@example.com',
     phone: '+234 803 456 7890',
     role: 'user',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    avatar:
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
     address: 'Plot 14, Victoria Island High Street, Suite 402',
     city: 'Lagos',
     state: 'Lagos State',
@@ -364,7 +396,8 @@ const initialUsers: UserRecord[] = [
     ordersCount: 3,
     measurementsCount: 2,
     vipTier: 'Aristocrat',
-    tailorNotes: 'Prefers extra 1.5 inch sleeve ease for ceremonial suit drape. Gold thread embroidery enthusiast.',
+    tailorNotes:
+      'Prefers extra 1.5 inch sleeve ease for ceremonial suit drape. Gold thread embroidery enthusiast.',
     savedMeasurements: {
       chest: '42 in',
       shoulders: '19.5 in',
@@ -380,7 +413,8 @@ const initialUsers: UserRecord[] = [
     email: 'chiamaka@luxury.io',
     phone: '+234 809 111 2233',
     role: 'vip',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
+    avatar:
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
     address: 'Penthouse 4B, Eko Atlantic Ocean View Residences',
     city: 'Lagos',
     state: 'Lagos State',
@@ -391,7 +425,8 @@ const initialUsers: UserRecord[] = [
     ordersCount: 4,
     measurementsCount: 1,
     vipTier: 'Master',
-    tailorNotes: 'Gown length custom cut for 4-inch Christian Louboutin heels. Prefers pure Italian velvet.',
+    tailorNotes:
+      'Gown length custom cut for 4-inch Christian Louboutin heels. Prefers pure Italian velvet.',
     savedMeasurements: {
       bust: '36 in',
       waist: '27 in',
@@ -406,7 +441,8 @@ const initialUsers: UserRecord[] = [
     email: 'kofi.mensah@accra-capital.com',
     phone: '+233 24 555 8901',
     role: 'user',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    avatar:
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
     address: 'No. 8 Airport Residential Area, Cantonments',
     city: 'Accra',
     state: 'Greater Accra',
@@ -417,7 +453,8 @@ const initialUsers: UserRecord[] = [
     ordersCount: 1,
     measurementsCount: 1,
     vipTier: 'Executive',
-    tailorNotes: 'Slim European fit for Senator Suits. Likes hidden plackets and mother-of-pearl buttons.',
+    tailorNotes:
+      'Slim European fit for Senator Suits. Likes hidden plackets and mother-of-pearl buttons.',
     savedMeasurements: {
       chest: '40 in',
       shoulders: '18 in',
@@ -432,7 +469,8 @@ const initialUsers: UserRecord[] = [
     email: 'admin@yk.com',
     phone: '+234 812 000 7801',
     role: 'admin',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+    avatar:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
     address: 'YK Stitches Atelier Flagship, 14 Victoria Island',
     city: 'Lagos',
     state: 'Lagos State',
@@ -443,8 +481,9 @@ const initialUsers: UserRecord[] = [
     ordersCount: 0,
     measurementsCount: 0,
     vipTier: 'Master',
-    tailorNotes: 'Lead master cutter & founder. Full administrative access to inventory, pricing, client CRM, and artisan workshop routing.',
-  }
+    tailorNotes:
+      'Lead master cutter & founder. Full administrative access to inventory, pricing, client CRM, and artisan workshop routing.',
+  },
 ];
 
 let usersDatabase: UserRecord[] = [...initialUsers];
@@ -458,7 +497,9 @@ interface SessionRecord {
 const passwordRecords = new Map<string, { salt: string; hash: string }>();
 const localSessionStore = new Map<string, { userId: string; expiresAt: number }>();
 const legacyAdminPasswordRecords = ['admin', 'yk2026'].map((password) => hashPassword(password));
-const legacyTailorPasswordRecords = ['tailor', 'admin123', 'yk2026'].map((password) => hashPassword(password));
+const legacyTailorPasswordRecords = ['tailor', 'admin123', 'yk2026'].map((password) =>
+  hashPassword(password),
+);
 
 function hashPassword(password: string, salt = crypto.randomBytes(16).toString('hex')) {
   return {
@@ -468,7 +509,10 @@ function hashPassword(password: string, salt = crypto.randomBytes(16).toString('
 }
 
 function canonicalizeEmail(email: string): string {
-  return email.trim().toLowerCase().replace(/@ykstitches\.com$/i, '@yk.com');
+  return email
+    .trim()
+    .toLowerCase()
+    .replace(/@ykstitches\.com$/i, '@yk.com');
 }
 
 function getEmailAliases(email: string): string[] {
@@ -501,16 +545,23 @@ function isKnownStaffEmail(email: string): boolean {
 
 function verifyPassword(email: string, password: string) {
   const matchingAliases = getEmailAliases(email);
-  const records = matchingAliases.map((alias) => passwordRecords.get(alias)).filter(Boolean) as { salt: string; hash: string }[];
+  const records = matchingAliases.map((alias) => passwordRecords.get(alias)).filter(Boolean) as {
+    salt: string;
+    hash: string;
+  }[];
   if (!records.length || !password) return false;
   const matches = (candidateRecord: { salt: string; hash: string }) => {
     const candidate = crypto.scryptSync(password, candidateRecord.salt, 64);
     const expected = Buffer.from(candidateRecord.hash, 'hex');
     return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
   };
-  return records.some(matches) ||
-    (matchingAliases.some((value) => value === 'admin@yk.com' || value === 'admin@ykstitches.com') &&
-      legacyAdminPasswordRecords.some(matches));
+  return (
+    records.some(matches) ||
+    (matchingAliases.some(
+      (value) => value === 'admin@yk.com' || value === 'admin@ykstitches.com',
+    ) &&
+      legacyAdminPasswordRecords.some(matches))
+  );
 }
 
 // Demo accounts retain their original credentials, but are validated on the server.
@@ -597,7 +648,11 @@ async function getAuthenticatedUser(req: express.Request): Promise<Authenticated
   }
   let user = usersDatabase.find((candidate) => candidate.id === session.user_id);
   if (!user) {
-    const { data: profile } = await supabase.from('users').select('*').eq('id', session.user_id).maybeSingle();
+    const { data: profile } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user_id)
+      .maybeSingle();
     if (profile) {
       user = normalizeUserRow(profile);
       usersDatabase.push(user);
@@ -665,7 +720,7 @@ async function logAudit(
     userAgent?: string;
     status?: 'success' | 'failure' | 'blocked';
     errorMessage?: string;
-  } = {}
+  } = {},
 ) {
   if (!supabase) return;
 
@@ -699,7 +754,12 @@ function hashRecoveryToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-async function createPasswordRecoveryToken(userId: string, email: string, tokenType: 'password_reset' | 'email_verification', req: express.Request) {
+async function createPasswordRecoveryToken(
+  userId: string,
+  email: string,
+  tokenType: 'password_reset' | 'email_verification',
+  req: express.Request,
+) {
   if (!supabase) return null;
 
   const token = generateRecoveryToken();
@@ -743,12 +803,19 @@ async function verifyAndInvalidateRecoveryToken(email: string, token: string, to
   }
 
   // Mark token as used
-  await supabase.from('password_recovery_tokens').update({ is_valid: false, used_at: new Date().toISOString() }).eq('id', tokenRecord.id);
+  await supabase
+    .from('password_recovery_tokens')
+    .update({ is_valid: false, used_at: new Date().toISOString() })
+    .eq('id', tokenRecord.id);
 
   return tokenRecord.user_id;
 }
 
-async function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+async function requireAuth(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction,
+) {
   const user = await getAuthenticatedUser(req);
   if (!user) return res.status(401).json({ error: 'Authentication required' });
   req.authenticatedUser = user;
@@ -809,24 +876,35 @@ app.post('/api/auth/login', async (req, res) => {
   const requestedRole: 'user' | 'tailor' = parsed.data.role === 'tailor' ? 'tailor' : 'user';
   const isTailorAttempt = requestedRole === 'tailor';
   const canonicalEmail = canonicalizeEmail(email);
-  const localUser = usersDatabase.find((candidate) => canonicalizeEmail(candidate.email) === canonicalEmail) ||
-    ((canonicalEmail === 'admin@yk.com') ? usersDatabase.find((candidate) => candidate.id === 'usr_admin_master') : undefined);
-  const isStaffLogin = isTailorAttempt || isKnownStaffEmail(email) || Boolean(localUser && localUser.role === 'admin');
+  const localUser =
+    usersDatabase.find((candidate) => canonicalizeEmail(candidate.email) === canonicalEmail) ||
+    (canonicalEmail === 'admin@yk.com'
+      ? usersDatabase.find((candidate) => candidate.id === 'usr_admin_master')
+      : undefined);
+  const isStaffLogin =
+    isTailorAttempt || isKnownStaffEmail(email) || Boolean(localUser && localUser.role === 'admin');
 
   if (supabaseAuth && !isStaffLogin && !localUser && !isTailorAttempt) {
     try {
       const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
       if (error || !data.user) {
         if (error?.code === 'email_not_confirmed') {
-          return res.status(403).json({ error: 'Please verify your email address before signing in' });
+          return res
+            .status(403)
+            .json({ error: 'Please verify your email address before signing in' });
         }
         if (error?.code === 'over_request_rate_limit') {
-          return res.status(429).json({ error: 'Too many authentication attempts. Please wait a few minutes and try again.' });
+          return res
+            .status(429)
+            .json({
+              error: 'Too many authentication attempts. Please wait a few minutes and try again.',
+            });
         }
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
-      let user = usersDatabase.find((candidate) => candidate.id === data.user.id) ||
+      let user =
+        usersDatabase.find((candidate) => candidate.id === data.user.id) ||
         usersDatabase.find((candidate) => canonicalizeEmail(candidate.email) === canonicalEmail);
       if (!user && supabase) {
         const { data: profile, error: profileError } = await supabase
@@ -866,29 +944,34 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   const user = localUser;
-  const validPassword = verifyPassword(email, password) ||
+  const validPassword =
+    verifyPassword(email, password) ||
     (requestedRole === 'tailor' && verifyAgainstRecords(password, legacyTailorPasswordRecords));
 
-   if (!user || !validPassword || (requestedRole === 'tailor' && user.vipTier !== 'Artisan Tailor')) {
-     await logAudit('auth_login', 'Login attempt failed', {
-       actorEmail: email,
-       ipAddress: req.ip,
-       userAgent: req.get('user-agent'),
-       status: 'failure',
-       errorMessage: 'Invalid email or password',
-     });
-     return res.status(401).json({ error: 'Invalid email or password' });
-   }
+  if (
+    !user ||
+    !validPassword ||
+    (requestedRole === 'tailor' && user.vipTier !== 'Artisan Tailor')
+  ) {
+    await logAudit('auth_login', 'Login attempt failed', {
+      actorEmail: email,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      status: 'failure',
+      errorMessage: 'Invalid email or password',
+    });
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
 
-   const sessionResult = await createSession(req, res, user);
-   await logAudit('auth_login', 'Login successful', {
-     actorId: user.id,
-     actorEmail: user.email,
-     actorName: user.name,
-     ipAddress: req.ip,
-     userAgent: req.get('user-agent'),
-   });
-   return res.json(sessionResult);
+  const sessionResult = await createSession(req, res, user);
+  await logAudit('auth_login', 'Login successful', {
+    actorId: user.id,
+    actorEmail: user.email,
+    actorName: user.name,
+    ipAddress: req.ip,
+    userAgent: req.get('user-agent'),
+  });
+  return res.json(sessionResult);
 });
 
 app.post('/api/auth/demo', async (req, res) => {
@@ -901,14 +984,18 @@ app.post('/api/auth/demo', async (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Name, valid email, and an 8-character password are required' });
+    return res
+      .status(400)
+      .json({ error: 'Name, valid email, and an 8-character password are required' });
   }
 
   const name = sanitizeUserText(parsed.data.name, 120);
   const email = sanitizeUserText(parsed.data.email, 254).toLowerCase();
   const password = parsed.data.password;
   if (!name || !email || !email.includes('@') || password.length < 8) {
-    return res.status(400).json({ error: 'Name, valid email, and an 8-character password are required' });
+    return res
+      .status(400)
+      .json({ error: 'Name, valid email, and an 8-character password are required' });
   }
   if (usersDatabase.some((user) => user.email.toLowerCase() === email)) {
     return res.status(409).json({ error: 'An account with that email already exists' });
@@ -923,8 +1010,15 @@ app.post('/api/auth/register', async (req, res) => {
       },
     });
     if (error || !data.user) {
-      if (error?.code === 'over_email_send_rate_limit' || error?.code === 'over_request_rate_limit') {
-        return res.status(429).json({ error: 'Email rate limit reached. Please wait a few minutes before trying again.' });
+      if (
+        error?.code === 'over_email_send_rate_limit' ||
+        error?.code === 'over_request_rate_limit'
+      ) {
+        return res
+          .status(429)
+          .json({
+            error: 'Email rate limit reached. Please wait a few minutes before trying again.',
+          });
       }
       return res.status(400).json({ error: error?.message || 'Unable to create account' });
     }
@@ -944,21 +1038,24 @@ app.post('/api/auth/register', async (req, res) => {
       measurementsCount: 0,
       vipTier: 'Patron',
     };
-    const { error: profileError } = await supabase.from('users').upsert({
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      phone: newUser.phone,
-      role: newUser.role,
-      address: newUser.address,
-      city: newUser.city,
-      country: newUser.country,
-      joined_date: newUser.joinedDate,
-      total_spent: 0,
-      orders_count: 0,
-      measurements_count: 0,
-      vip_tier: newUser.vipTier,
-    }, { onConflict: 'email' });
+    const { error: profileError } = await supabase.from('users').upsert(
+      {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        phone: newUser.phone,
+        role: newUser.role,
+        address: newUser.address,
+        city: newUser.city,
+        country: newUser.country,
+        joined_date: newUser.joinedDate,
+        total_spent: 0,
+        orders_count: 0,
+        measurements_count: 0,
+        vip_tier: newUser.vipTier,
+      },
+      { onConflict: 'email' },
+    );
     if (profileError) {
       console.error('Supabase profile save failed:', {
         code: profileError.code,
@@ -1014,24 +1111,27 @@ app.post('/api/auth/register', async (req, res) => {
   if (supabase) {
     let saveError: Error | null = null;
     try {
-      const { error } = await supabase.from('users').upsert({
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        phone: newUser.phone,
-        role: newUser.role,
-        avatar: newUser.avatar,
-        address: newUser.address,
-        city: newUser.city,
-        country: newUser.country,
-        joined_date: newUser.joinedDate,
-        total_spent: newUser.totalSpent,
-        orders_count: newUser.ordersCount,
-        measurements_count: newUser.measurementsCount,
-        vip_tier: newUser.vipTier,
-        tailor_notes: newUser.tailorNotes,
-        saved_measurements: newUser.savedMeasurements || {},
-      }, { onConflict: 'id' });
+      const { error } = await supabase.from('users').upsert(
+        {
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          role: newUser.role,
+          avatar: newUser.avatar,
+          address: newUser.address,
+          city: newUser.city,
+          country: newUser.country,
+          joined_date: newUser.joinedDate,
+          total_spent: newUser.totalSpent,
+          orders_count: newUser.ordersCount,
+          measurements_count: newUser.measurementsCount,
+          vip_tier: newUser.vipTier,
+          tailor_notes: newUser.tailorNotes,
+          saved_measurements: newUser.savedMeasurements || {},
+        },
+        { onConflict: 'id' },
+      );
       saveError = error;
     } catch (error) {
       saveError = error instanceof Error ? error : new Error('Unknown Supabase error');
@@ -1066,9 +1166,16 @@ app.get('/api/auth/session', async (req, res) => {
   if (!user) return res.status(401).json({ user: null });
   const sessionId = parseCookies(req)[SESSION_COOKIE];
   const { data: session } = supabase
-    ? await supabase.from('sessions').select('expires_at').eq('id', hashSessionId(sessionId)).maybeSingle()
+    ? await supabase
+        .from('sessions')
+        .select('expires_at')
+        .eq('id', hashSessionId(sessionId))
+        .maybeSingle()
     : { data: null };
-  return res.json({ user: publicUser(user), expiresAt: session?.expires_at || new Date(Date.now() + SESSION_TTL_MS).toISOString() });
+  return res.json({
+    user: publicUser(user),
+    expiresAt: session?.expires_at || new Date(Date.now() + SESSION_TTL_MS).toISOString(),
+  });
 });
 
 app.post('/api/auth/logout', async (req, res) => {
@@ -1109,13 +1216,17 @@ app.post('/api/auth/forgot-password', authRateLimiter, async (req, res) => {
 
   // Always return success to prevent email enumeration
   if (!user || !supabase) {
-    return res.json({ message: 'If an account exists, a password reset link has been sent to the email address' });
+    return res.json({
+      message: 'If an account exists, a password reset link has been sent to the email address',
+    });
   }
 
   try {
     const token = await createPasswordRecoveryToken(user.id, email, 'password_reset', req);
     if (!token) {
-      return res.json({ message: 'If an account exists, a password reset link has been sent to the email address' });
+      return res.json({
+        message: 'If an account exists, a password reset link has been sent to the email address',
+      });
     }
 
     // Log the request
@@ -1130,10 +1241,14 @@ app.post('/api/auth/forgot-password', authRateLimiter, async (req, res) => {
     // await sendEmail(email, 'Password Reset Request', resetTemplate(resetLink));
 
     console.log(`[DEV] Password reset token for ${email}: ${token}`);
-    return res.json({ message: 'If an account exists, a password reset link has been sent to the email address' });
+    return res.json({
+      message: 'If an account exists, a password reset link has been sent to the email address',
+    });
   } catch (error) {
     console.error('Failed to process forgot password:', error);
-    return res.json({ message: 'If an account exists, a password reset link has been sent to the email address' });
+    return res.json({
+      message: 'If an account exists, a password reset link has been sent to the email address',
+    });
   }
 });
 
@@ -1199,7 +1314,9 @@ app.post('/api/auth/reset-password', authRateLimiter, async (req, res) => {
       userAgent: req.get('user-agent'),
     });
 
-    return res.json({ message: 'Password reset successfully. Please log in with your new password.' });
+    return res.json({
+      message: 'Password reset successfully. Please log in with your new password.',
+    });
   } catch (error) {
     console.error('Failed to reset password:', error);
     return res.status(500).json({ error: 'Failed to reset password' });
@@ -1320,7 +1437,8 @@ const initialOrders: OrderRecord[] = [
         price: 380,
         isCustom: true,
         fit: 'Bespoke Executive Cut',
-        image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=800&q=80',
+        image:
+          'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=800&q=80',
       },
     ],
     orderType: 'bespoke',
@@ -1337,7 +1455,8 @@ const initialOrders: OrderRecord[] = [
     assignedTailor: {
       name: 'Master Tailor Yinka',
       role: 'Head of Bespoke Traditional Atelier',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+      avatar:
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
       phone: '+234 812 000 7801',
     },
     currentStageIndex: 2,
@@ -1349,7 +1468,8 @@ const initialOrders: OrderRecord[] = [
       'Neck Size': '16.5 in',
       'Trouser Inseam': '32.5 in',
     },
-    specialInstructions: 'High-density chain stitch gold embroidery around collar & chest plaque. Double-pleat trousers.',
+    specialInstructions:
+      'High-density chain stitch gold embroidery around collar & chest plaque. Double-pleat trousers.',
     milestones: [
       {
         id: 'm1',
@@ -1375,12 +1495,14 @@ const initialOrders: OrderRecord[] = [
         id: 'm3',
         stage: 'embroidery_stitching',
         label: 'Gold Needle Embroidery & Master Stitching',
-        description: 'Currently on the master artisan bench receiving intricate chest plaque embroidery.',
+        description:
+          'Currently on the master artisan bench receiving intricate chest plaque embroidery.',
         completed: false,
         active: true,
         timestamp: 'In Progress · ETA 6 hrs',
         tailorNotes: 'Artisan Ibrahim is executing 45,000 stitch gold filigree detailing.',
-        photoUrl: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=600&q=80',
+        photoUrl:
+          'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&w=600&q=80',
       },
       {
         id: 'm4',
@@ -1418,7 +1540,8 @@ const initialOrders: OrderRecord[] = [
         price: 460,
         isCustom: true,
         fit: 'Sculpted Hourglass',
-        image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=800&q=80',
+        image:
+          'https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=800&q=80',
       },
     ],
     orderType: 'bespoke',
@@ -1435,7 +1558,8 @@ const initialOrders: OrderRecord[] = [
     assignedTailor: {
       name: 'Senior Couturier Amina',
       role: 'Lead Haute Couture Specialist',
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
+      avatar:
+        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
       phone: '+234 818 555 4321',
     },
     currentStageIndex: 3,
@@ -1523,15 +1647,16 @@ Your Personality:
 
     if (ai) {
       try {
-        const contents = chatHistory.length > 0
-          ? [
-              ...chatHistory.map((m: any) => ({
-                role: m.sender === 'user' ? 'user' : 'model',
-                parts: [{ text: m.text }],
-              })),
-              { role: 'user', parts: [{ text: message }] },
-            ]
-          : message;
+        const contents =
+          chatHistory.length > 0
+            ? [
+                ...chatHistory.map((m: any) => ({
+                  role: m.sender === 'user' ? 'user' : 'model',
+                  parts: [{ text: m.text }],
+                })),
+                { role: 'user', parts: [{ text: message }] },
+              ]
+            : message;
 
         const response = await ai.models.generateContent({
           model: 'gemini-3.7-flash',
@@ -1541,14 +1666,19 @@ Your Personality:
           },
         });
 
-        const reply = response.text || "I'd be delighted to assist you with tailoring your bespoke piece at YK Stitches Atelier.";
+        const reply =
+          response.text ||
+          "I'd be delighted to assist you with tailoring your bespoke piece at YK Stitches Atelier.";
         return res.json({
           reply,
           tailor: tailorName || 'Master Tailor Adeyinka',
           source: 'gemini-3.7-flash',
         });
       } catch (genAiError: any) {
-        console.warn('Gemini API call failed, falling back to expert tailor rules:', genAiError?.message);
+        console.warn(
+          'Gemini API call failed, falling back to expert tailor rules:',
+          genAiError?.message,
+        );
       }
     }
 
@@ -1562,11 +1692,27 @@ Your Personality:
 2. **Shoulder Span:** Measure horizontally from the edge of your left shoulder bone across to the right bone.
 3. **Collar & Suit / Shirt Length:** Measure around the base of your neck, and from neck base down to your preferred hem.
 Feel free to save these directly in our Custom Tailoring Studio!`;
-    } else if (lowerMsg.includes('fabric') || lowerMsg.includes('material') || lowerMsg.includes('silk') || lowerMsg.includes('linen') || lowerMsg.includes('wool') || lowerMsg.includes('brocade')) {
+    } else if (
+      lowerMsg.includes('fabric') ||
+      lowerMsg.includes('material') ||
+      lowerMsg.includes('silk') ||
+      lowerMsg.includes('linen') ||
+      lowerMsg.includes('wool') ||
+      lowerMsg.includes('brocade')
+    ) {
       fallbackReply += `We curate only world-class textiles. For warm climate ceremonies, our Pure Swiss Voile and 100% Heavy Irish Linen provide unmatched breathability with crisp structure. For galas and formal suits, our Super 150s Italian Wool and Obsidian Velvet drape with regal prestige.`;
-    } else if (lowerMsg.includes('wedding') || lowerMsg.includes('party') || lowerMsg.includes('event') || lowerMsg.includes('style')) {
+    } else if (
+      lowerMsg.includes('wedding') ||
+      lowerMsg.includes('party') ||
+      lowerMsg.includes('event') ||
+      lowerMsg.includes('style')
+    ) {
       fallbackReply += `For momentous celebrations, our **Imperial 3-Piece Royal Suit** in Emerald or Champagne Brocade paired with gold chain-stitch embroidery is the pinnacle of luxury. Alternatively, a sharp **Mandarin Collar Senator Cut** in Italian Cashmere Blend delivers timeless dignity.`;
-    } else if (lowerMsg.includes('track') || lowerMsg.includes('order') || lowerMsg.includes('delivery')) {
+    } else if (
+      lowerMsg.includes('track') ||
+      lowerMsg.includes('order') ||
+      lowerMsg.includes('delivery')
+    ) {
       fallbackReply += `You can monitor every phase of your garment on our live Real-Time Tracking Dashboard—from pattern drafting and embroidery to final steam pressing and dispatch. We document each milestone with artisan notes!`;
     } else {
       fallbackReply += `It is my pleasure to advise you on your bespoke garment. Whether you require tailored embroidery placement, fabric consultations, or styling guidance for an upcoming milestone, I am here at your service. How would you like to refine your look today?`;
@@ -1591,14 +1737,17 @@ app.get('/api/orders', requireAuth, async (req, res) => {
       const { data, error } = await supabase.from('orders').select('*');
       if (!error && data) {
         const rows = data.map(normalizeOrderRow);
-        const allOrders = rows.length > 0
-          ? [...new Map(
-              [...ordersDatabase, ...rows].map((order) => [order.id, order])
-            ).values()]
-          : ordersDatabase;
-        const orders = req.authenticatedUser?.role === 'admin'
-          ? allOrders
-          : allOrders.filter((order) => order.customerEmail.toLowerCase() === req.authenticatedUser?.email.toLowerCase());
+        const allOrders =
+          rows.length > 0
+            ? [...new Map([...ordersDatabase, ...rows].map((order) => [order.id, order])).values()]
+            : ordersDatabase;
+        const orders =
+          req.authenticatedUser?.role === 'admin'
+            ? allOrders
+            : allOrders.filter(
+                (order) =>
+                  order.customerEmail.toLowerCase() === req.authenticatedUser?.email.toLowerCase(),
+              );
         return res.json({ orders });
       }
     } catch (error) {
@@ -1606,9 +1755,13 @@ app.get('/api/orders', requireAuth, async (req, res) => {
     }
   }
 
-  const orders = req.authenticatedUser?.role === 'admin'
-    ? ordersDatabase
-    : ordersDatabase.filter((order) => order.customerEmail.toLowerCase() === req.authenticatedUser?.email.toLowerCase());
+  const orders =
+    req.authenticatedUser?.role === 'admin'
+      ? ordersDatabase
+      : ordersDatabase.filter(
+          (order) =>
+            order.customerEmail.toLowerCase() === req.authenticatedUser?.email.toLowerCase(),
+        );
   res.json({ orders });
 });
 
@@ -1618,14 +1771,20 @@ app.post('/api/orders/search', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'Search query is required' });
   }
 
-  const query = sanitizeUserText(parsed.data.query || parsed.data.orderNumber || '', 100).toLowerCase();
+  const query = sanitizeUserText(
+    parsed.data.query || parsed.data.orderNumber || '',
+    100,
+  ).toLowerCase();
   if (!query) return res.status(400).json({ error: 'Search query is required' });
 
   const found = ordersDatabase.find(
-    (o) => o.orderNumber.toLowerCase() === query || o.id.toLowerCase() === query
+    (o) => o.orderNumber.toLowerCase() === query || o.id.toLowerCase() === query,
   );
-  if (found && (req.authenticatedUser?.role === 'admin' ||
-    found.customerEmail.toLowerCase() === req.authenticatedUser?.email.toLowerCase())) {
+  if (
+    found &&
+    (req.authenticatedUser?.role === 'admin' ||
+      found.customerEmail.toLowerCase() === req.authenticatedUser?.email.toLowerCase())
+  ) {
     return res.json({ order: found });
   }
   return res.status(404).json({ error: 'Order not found' });
@@ -1644,7 +1803,8 @@ app.post('/api/orders', requireAuth, async (req, res) => {
       orderNumber,
       customerName: req.authenticatedUser?.name || orderData.customerName || 'VIP Patron',
       customerPhone: req.authenticatedUser?.phone || orderData.customerPhone || '+234 800 000 0000',
-      customerEmail: req.authenticatedUser?.email || orderData.customerEmail || 'client@ykstitches.com',
+      customerEmail:
+        req.authenticatedUser?.email || orderData.customerEmail || 'client@ykstitches.com',
       items: orderData.items || [],
       orderType: orderData.orderType || 'bespoke',
       totalAmount: orderData.totalAmount || 250,
@@ -1656,11 +1816,14 @@ app.post('/api/orders', requireAuth, async (req, res) => {
       deliveryCity: orderData.deliveryCity || 'Lagos',
       expressDelivery: Boolean(orderData.expressDelivery),
       createdAt: new Date().toISOString(),
-      estimatedDeliveryDate: new Date(Date.now() + (orderData.expressDelivery ? 48 : 96) * 3600 * 1000).toISOString(),
+      estimatedDeliveryDate: new Date(
+        Date.now() + (orderData.expressDelivery ? 48 : 96) * 3600 * 1000,
+      ).toISOString(),
       assignedTailor: orderData.assignedTailor || {
         name: 'Master Tailor Adeyinka',
         role: 'Founder & Principal Master Cutter',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+        avatar:
+          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
         phone: '+234 812 345 6789',
       },
       currentStageIndex: 0,
@@ -1671,7 +1834,8 @@ app.post('/api/orders', requireAuth, async (req, res) => {
           id: 'm1',
           stage: 'order_confirmed',
           label: 'Order Confirmed & Material Sourced',
-          description: 'Payment verified and luxury fabric allocation confirmed from atelier vault.',
+          description:
+            'Payment verified and luxury fabric allocation confirmed from atelier vault.',
           completed: true,
           active: false,
           timestamp: 'Just now',
@@ -1681,7 +1845,8 @@ app.post('/api/orders', requireAuth, async (req, res) => {
           id: 'm2',
           stage: 'pattern_drafting',
           label: 'Hand Pattern Drafting & Precision Cutting',
-          description: 'Master pattern drafter translates custom measurements into garment blueprint.',
+          description:
+            'Master pattern drafter translates custom measurements into garment blueprint.',
           completed: false,
           active: true,
           timestamp: 'Next in queue (approx. 4 hrs)',
@@ -1720,31 +1885,34 @@ app.post('/api/orders', requireAuth, async (req, res) => {
 
     if (supabase) {
       try {
-        const { error } = await supabase.from('orders').upsert({
-          id: newOrder.id,
-          order_number: newOrder.orderNumber,
-          user_id: req.authenticatedUser?.id || null,
-          status: newOrder.paymentStatus,
-          total: Number(newOrder.totalAmount || 0),
-          items: newOrder.items,
-          shipping_address: newOrder.deliveryAddress,
-          created_at: newOrder.createdAt,
-          customer_name: newOrder.customerName,
-          customer_email: newOrder.customerEmail,
-          customer_phone: newOrder.customerPhone,
-          order_type: newOrder.orderType,
-          payment_status: newOrder.paymentStatus,
-          payment_gateway: newOrder.paymentGateway,
-          transaction_ref: newOrder.transactionRef,
-          delivery_city: newOrder.deliveryCity,
-          express_delivery: newOrder.expressDelivery,
-          estimated_delivery_date: newOrder.estimatedDeliveryDate,
-          assigned_tailor: newOrder.assignedTailor,
-          current_stage_index: newOrder.currentStageIndex,
-          milestones: newOrder.milestones,
-          measurements_summary: newOrder.measurementsSummary,
-          special_instructions: newOrder.specialInstructions,
-        }, { onConflict: 'id' });
+        const { error } = await supabase.from('orders').upsert(
+          {
+            id: newOrder.id,
+            order_number: newOrder.orderNumber,
+            user_id: req.authenticatedUser?.id || null,
+            status: newOrder.paymentStatus,
+            total: Number(newOrder.totalAmount || 0),
+            items: newOrder.items,
+            shipping_address: newOrder.deliveryAddress,
+            created_at: newOrder.createdAt,
+            customer_name: newOrder.customerName,
+            customer_email: newOrder.customerEmail,
+            customer_phone: newOrder.customerPhone,
+            order_type: newOrder.orderType,
+            payment_status: newOrder.paymentStatus,
+            payment_gateway: newOrder.paymentGateway,
+            transaction_ref: newOrder.transactionRef,
+            delivery_city: newOrder.deliveryCity,
+            express_delivery: newOrder.expressDelivery,
+            estimated_delivery_date: newOrder.estimatedDeliveryDate,
+            assigned_tailor: newOrder.assignedTailor,
+            current_stage_index: newOrder.currentStageIndex,
+            milestones: newOrder.milestones,
+            measurements_summary: newOrder.measurementsSummary,
+            special_instructions: newOrder.specialInstructions,
+          },
+          { onConflict: 'id' },
+        );
         if (error) {
           console.warn('Supabase order save failed, continuing in memory:', error.message);
         }
@@ -1816,7 +1984,10 @@ app.post('/api/upload-image', requireAuth, requireStaff, (req, res) => {
 app.get('/api/products', async (req, res) => {
   if (supabase) {
     try {
-      const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
       if (!error && data) {
         return res.json({ products: data.map(normalizeProductRow) });
       }
@@ -1841,18 +2012,21 @@ app.post('/api/products', requireAuth, requireStaff, async (req, res) => {
 
     if (supabase) {
       try {
-        const { error } = await supabase.from('products').upsert({
-          id: newProduct.id,
-          name: newProduct.name,
-          category: newProduct.category,
-          price: Number(newProduct.price ?? 0),
-          image_url: newProduct.image || newProduct.imageUrl,
-          description: newProduct.description,
-          fabric: newProduct.fabric,
-          tags: newProduct.tags || [],
-          featured: !!newProduct.featured,
-          created_at: new Date().toISOString(),
-        }, { onConflict: 'id' });
+        const { error } = await supabase.from('products').upsert(
+          {
+            id: newProduct.id,
+            name: newProduct.name,
+            category: newProduct.category,
+            price: Number(newProduct.price ?? 0),
+            image_url: newProduct.image || newProduct.imageUrl,
+            description: newProduct.description,
+            fabric: newProduct.fabric,
+            tags: newProduct.tags || [],
+            featured: !!newProduct.featured,
+            created_at: new Date().toISOString(),
+          },
+          { onConflict: 'id' },
+        );
         if (error) {
           console.warn('Supabase product upsert failed, continuing in memory:', error.message);
         }
@@ -1878,17 +2052,30 @@ app.put('/api/products/:id', requireAuth, requireStaff, async (req, res) => {
   if (supabase) {
     try {
       const currentProduct: any = productsDatabase[index];
-      const { error } = await supabase.from('products').upsert({
-        id,
-        name: currentProduct.title || currentProduct.name || 'Custom Product',
-        category: currentProduct.category || 'Tailored Staples',
-        price: Number(currentProduct.price ?? 0),
-        image_url: Array.isArray(currentProduct.images) ? currentProduct.images[0] : currentProduct.image || currentProduct.imageUrl || '',
-        description: currentProduct.description || '',
-        fabric: currentProduct.fabric ? (typeof currentProduct.fabric === 'string' ? currentProduct.fabric : currentProduct.fabric.name || '') : '',
-        tags: Array.isArray(currentProduct.tags) ? currentProduct.tags : (Array.isArray(currentProduct.highlights) ? currentProduct.highlights : []),
-        featured: Boolean((currentProduct as any).featured),
-      }, { onConflict: 'id' });
+      const { error } = await supabase.from('products').upsert(
+        {
+          id,
+          name: currentProduct.title || currentProduct.name || 'Custom Product',
+          category: currentProduct.category || 'Tailored Staples',
+          price: Number(currentProduct.price ?? 0),
+          image_url: Array.isArray(currentProduct.images)
+            ? currentProduct.images[0]
+            : currentProduct.image || currentProduct.imageUrl || '',
+          description: currentProduct.description || '',
+          fabric: currentProduct.fabric
+            ? typeof currentProduct.fabric === 'string'
+              ? currentProduct.fabric
+              : currentProduct.fabric.name || ''
+            : '',
+          tags: Array.isArray(currentProduct.tags)
+            ? currentProduct.tags
+            : Array.isArray(currentProduct.highlights)
+              ? currentProduct.highlights
+              : [],
+          featured: Boolean((currentProduct as any).featured),
+        },
+        { onConflict: 'id' },
+      );
       if (error) {
         console.warn('Supabase product update failed, continuing in memory:', error.message);
       }
@@ -1941,30 +2128,33 @@ app.post('/api/users', requireAuth, requireStaff, async (req, res) => {
   try {
     const userData = req.body;
     const existing = usersDatabase.find(
-      (u) => u.email.toLowerCase() === (userData.email || '').toLowerCase()
+      (u) => u.email.toLowerCase() === (userData.email || '').toLowerCase(),
     );
     if (existing) {
       Object.assign(existing, userData);
       if (supabase) {
         try {
-          await supabase.from('users').upsert({
-            id: existing.id,
-            name: existing.name,
-            email: existing.email,
-            phone: existing.phone,
-            role: existing.role,
-            avatar: existing.avatar,
-            address: existing.address,
-            city: existing.city,
-            country: existing.country,
-            joined_date: existing.joinedDate,
-            total_spent: existing.totalSpent,
-            orders_count: existing.ordersCount,
-            measurements_count: existing.measurementsCount,
-            vip_tier: existing.vipTier,
-            tailor_notes: existing.tailorNotes,
-            saved_measurements: existing.savedMeasurements || {},
-          }, { onConflict: 'id' });
+          await supabase.from('users').upsert(
+            {
+              id: existing.id,
+              name: existing.name,
+              email: existing.email,
+              phone: existing.phone,
+              role: existing.role,
+              avatar: existing.avatar,
+              address: existing.address,
+              city: existing.city,
+              country: existing.country,
+              joined_date: existing.joinedDate,
+              total_spent: existing.totalSpent,
+              orders_count: existing.ordersCount,
+              measurements_count: existing.measurementsCount,
+              vip_tier: existing.vipTier,
+              tailor_notes: existing.tailorNotes,
+              saved_measurements: existing.savedMeasurements || {},
+            },
+            { onConflict: 'id' },
+          );
         } catch (error) {
           console.warn('Supabase user upsert failed, continuing in memory:', error);
         }
@@ -1977,7 +2167,9 @@ app.post('/api/users', requireAuth, requireStaff, async (req, res) => {
       email: userData.email || `client_${Date.now()}@ykstitches.com`,
       phone: userData.phone || '+234 800 000 0000',
       role: userData.role || 'user',
-      avatar: userData.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+      avatar:
+        userData.avatar ||
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
       address: userData.address || 'Victoria Island',
       city: userData.city || 'Lagos',
       state: userData.state || 'Lagos State',
@@ -1995,24 +2187,27 @@ app.post('/api/users', requireAuth, requireStaff, async (req, res) => {
 
     if (supabase) {
       try {
-        await supabase.from('users').upsert({
-          id: newUser.id,
-          name: newUser.name,
-          email: newUser.email,
-          phone: newUser.phone,
-          role: newUser.role,
-          avatar: newUser.avatar,
-          address: newUser.address,
-          city: newUser.city,
-          country: newUser.country,
-          joined_date: newUser.joinedDate,
-          total_spent: newUser.totalSpent,
-          orders_count: newUser.ordersCount,
-          measurements_count: newUser.measurementsCount,
-          vip_tier: newUser.vipTier,
-          tailor_notes: newUser.tailorNotes,
-          saved_measurements: newUser.savedMeasurements || {},
-        }, { onConflict: 'id' });
+        await supabase.from('users').upsert(
+          {
+            id: newUser.id,
+            name: newUser.name,
+            email: newUser.email,
+            phone: newUser.phone,
+            role: newUser.role,
+            avatar: newUser.avatar,
+            address: newUser.address,
+            city: newUser.city,
+            country: newUser.country,
+            joined_date: newUser.joinedDate,
+            total_spent: newUser.totalSpent,
+            orders_count: newUser.ordersCount,
+            measurements_count: newUser.measurementsCount,
+            vip_tier: newUser.vipTier,
+            tailor_notes: newUser.tailorNotes,
+            saved_measurements: newUser.savedMeasurements || {},
+          },
+          { onConflict: 'id' },
+        );
       } catch (error) {
         console.warn('Supabase user insert failed, continuing in memory:', error);
       }
@@ -2031,7 +2226,17 @@ app.put('/api/users/:id', requireAuth, async (req, res) => {
   if (req.authenticatedUser?.role !== 'admin' && req.authenticatedUser?.id !== id) {
     return res.status(403).json({ error: 'You may only update your own profile' });
   }
-  const profileFields = ['name', 'phone', 'address', 'city', 'state', 'country', 'postalCode', 'savedMeasurements', 'wishlist'];
+  const profileFields = [
+    'name',
+    'phone',
+    'address',
+    'city',
+    'state',
+    'country',
+    'postalCode',
+    'savedMeasurements',
+    'wishlist',
+  ];
   for (const field of profileFields) {
     if (Object.prototype.hasOwnProperty.call(req.body, field)) {
       (user as unknown as Record<string, unknown>)[field] = req.body[field];
@@ -2040,24 +2245,27 @@ app.put('/api/users/:id', requireAuth, async (req, res) => {
 
   if (supabase) {
     try {
-      await supabase.from('users').upsert({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        avatar: user.avatar,
-        address: user.address,
-        city: user.city,
-        country: user.country,
-        joined_date: user.joinedDate,
-        total_spent: user.totalSpent,
-        orders_count: user.ordersCount,
-        measurements_count: user.measurementsCount,
-        vip_tier: user.vipTier,
-        tailor_notes: user.tailorNotes,
-        saved_measurements: user.savedMeasurements || {},
-      }, { onConflict: 'id' });
+      await supabase.from('users').upsert(
+        {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          avatar: user.avatar,
+          address: user.address,
+          city: user.city,
+          country: user.country,
+          joined_date: user.joinedDate,
+          total_spent: user.totalSpent,
+          orders_count: user.ordersCount,
+          measurements_count: user.measurementsCount,
+          vip_tier: user.vipTier,
+          tailor_notes: user.tailorNotes,
+          saved_measurements: user.savedMeasurements || {},
+        },
+        { onConflict: 'id' },
+      );
     } catch (error) {
       console.warn('Supabase user profile save failed, continuing in memory:', error);
     }
@@ -2086,11 +2294,14 @@ app.delete('/api/orders/:id', requireAuth, requireStaff, (req, res) => {
 
 // API: Sales Analytics Summary for Admin Dashboard
 app.get('/api/analytics/sales', requireAuth, requireStaff, (req, res) => {
-  const totalRevenueUSD = ordersDatabase.reduce((sum, o) => sum + (o.paymentStatus === 'paid' ? o.totalAmount : 0), 0);
+  const totalRevenueUSD = ordersDatabase.reduce(
+    (sum, o) => sum + (o.paymentStatus === 'paid' ? o.totalAmount : 0),
+    0,
+  );
   const totalOrders = ordersDatabase.length;
   const paidOrders = ordersDatabase.filter((o) => o.paymentStatus === 'paid').length;
   const averageOrderValue = paidOrders > 0 ? Math.round(totalRevenueUSD / paidOrders) : 0;
-  
+
   const gatewayBreakdown: Record<string, number> = {};
   ordersDatabase.forEach((o) => {
     gatewayBreakdown[o.paymentGateway] = (gatewayBreakdown[o.paymentGateway] || 0) + 1;
@@ -2193,19 +2404,32 @@ app.get('/api/audit-logs/export', requireAuth, requireStaff, async (req, res) =>
     }
 
     // Convert to CSV
-    const csvHeader = ['timestamp', 'event_type', 'actor_email', 'actor_name', 'action', 'resource_type', 'resource_id', 'status', 'ip_address', 'details'].join(',');
-    const csvRows = logs.map((log: any) => [
-      log.created_at,
-      log.event_type,
-      `"${log.actor_email || ''}"`,
-      `"${log.actor_name || ''}"`,
-      `"${log.action || ''}"`,
-      log.resource_type || '',
-      log.resource_id || '',
-      log.status,
-      log.ip_address || '',
-      `"${JSON.stringify(log.details || {}).replace(/"/g, '""')}"`,
-    ].join(','));
+    const csvHeader = [
+      'timestamp',
+      'event_type',
+      'actor_email',
+      'actor_name',
+      'action',
+      'resource_type',
+      'resource_id',
+      'status',
+      'ip_address',
+      'details',
+    ].join(',');
+    const csvRows = logs.map((log: any) =>
+      [
+        log.created_at,
+        log.event_type,
+        `"${log.actor_email || ''}"`,
+        `"${log.actor_name || ''}"`,
+        `"${log.action || ''}"`,
+        log.resource_type || '',
+        log.resource_id || '',
+        log.status,
+        log.ip_address || '',
+        `"${JSON.stringify(log.details || {}).replace(/"/g, '""')}"`,
+      ].join(','),
+    );
 
     const csv = [csvHeader, ...csvRows].join('\n');
 
@@ -2335,19 +2559,22 @@ async function start() {
   if (isProduction && hasTlsCertificateConfig) {
     const keyPath = process.env.TLS_KEY_PATH;
     const certPath = process.env.TLS_CERT_PATH;
-    https.createServer(
-      { key: fs.readFileSync(keyPath!), cert: fs.readFileSync(certPath!) },
-      app,
-    ).listen(PORT, '0.0.0.0', () => {
-      console.log(`YK Stitches Atelier Server running at https://0.0.0.0:${PORT}`);
-    });
+    https
+      .createServer({ key: fs.readFileSync(keyPath!), cert: fs.readFileSync(certPath!) }, app)
+      .listen(PORT, '0.0.0.0', () => {
+        console.log(`YK Stitches Atelier Server running at https://0.0.0.0:${PORT}`);
+      });
     return;
   }
 
   app.listen(PORT, '0.0.0.0', () => {
     if (isProduction) {
-      console.log(`YK Stitches Atelier Server running in production behind a proxy at http://0.0.0.0:${PORT}`);
-      console.log('No TLS_KEY_PATH/TLS_CERT_PATH configured; continuing in HTTP mode because Render or a reverse proxy is expected to terminate TLS.');
+      console.log(
+        `YK Stitches Atelier Server running in production behind a proxy at http://0.0.0.0:${PORT}`,
+      );
+      console.log(
+        'No TLS_KEY_PATH/TLS_CERT_PATH configured; continuing in HTTP mode because Render or a reverse proxy is expected to terminate TLS.',
+      );
     } else {
       console.log(`YK Stitches Atelier Server running at http://0.0.0.0:${PORT}`);
     }

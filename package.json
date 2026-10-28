@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "audit": "npm audit --omit=dev",
     "test": "node --import tsx --experimental-test-coverage --test tests/*.test.mjs",
     "format:check": "npx --yes prettier@3.6.2 --check .prettierrc.json docker-compose.yml .github/workflows/ci.yml eslint.config.js src/components/AppMainContent.tsx src/components/AppOverlays.tsx src/components/AtelierFooter.tsx tests/products.integration.test.mjs .github/dependabot.yml",
