@@ -99,6 +99,7 @@ test('product creation, update, and deletion are restricted to staff', async () 
     method: 'POST',
     body: JSON.stringify({ name: 'Unauthorized product', price: 10 }),
   });
+  // CSRF middleware rejects unauthenticated mutations before the product route.
   assert.equal(unauthorized.status, 403);
 
   const create = await request('/api/products', {
